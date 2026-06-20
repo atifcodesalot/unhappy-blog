@@ -753,7 +753,7 @@
             $$
 
             then we get back the corresponding parameters used to interpolate the "unprojected" texture and therefore the corresponding texel: \(T(u, v)\)! Neat huh? Every shader does this to find the original parameters or coordinates on the projected primitive 
-            to recover the "unprojected" attributes, like: texel coordinates, rgb values (e.g if you are interpolating RGB colors), surface normals etc. 
+            to recover the "unprojected" attributes, like: texel coordinates, rgb values (e.g if you are interpolating RGB colors), surface normals etc. <br>
 
             But we need to be more slick. \(u\) and \(v\) are in world space. I say it for the 67th time, we interpolate in screen space.
             We need to use the barycentric coordinates in the viewport space to define an affine sum so that \(u' + v' + \gamma' = 1\).
@@ -814,10 +814,10 @@
             \frac{\gamma}{w_0} + \frac{u}{w_0} + \frac{v}{w_0} = \gamma' \frac{1}{w_1}  + u' \frac{1}{w_2}  + v' \frac{1}{w_3}
             $$
 
-            We only need to realize, now; because \(\gamma\), \(u\), and \(v\) are barycentric coordinates they sum up to \(1\):
+            We only need to once again realize, now; because \(\gamma\), \(u\), and \(v\) are also barycentric coordinates they sum up to \(1\):
 
             $$
-            \frac{1}{w_0} = \gamma' \frac{1}{w_1}  + u' \frac{1}{w_12}  + v' \frac{1}{w_3}
+            \frac{1}{w_0} = \gamma' \frac{1}{w_1}  + u' \frac{1}{w_2}  + v' \frac{1}{w_3}
             $$
 
             $$
