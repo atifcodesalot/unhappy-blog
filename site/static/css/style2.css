@@ -6,13 +6,28 @@
 }
 
 header {
-  font-size: large;
-  color: black;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  justify-content: center;
+  font-size: x-large;
+  font-family: cursive;
+  color: firebrick;
+  align-items: right;
+}
+
+header img {
+  width: 10%;
+  height: auto;
+  margin: 6px;
+  border-radius: 4px;
 }
 
 ul {
-  list-style-type: decimal;
+  margin-left: 10px;
+  list-style-type: upper-roman;
   padding: 0;
+  font-size: medium;
 }
 
 /* Body Styling */
@@ -83,6 +98,18 @@ canvas {
   margin-bottom: 10px 0;
 }
 
+.textChunk ol {
+  padding-left: 30px;
+  margin-bottom: 25px;
+  color: #000000;
+}
+
+.textChunk a {
+  color: darkslategray;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
 .textChunk h2 {
   line-height: 1.8;
   color: #040201;
@@ -125,11 +152,13 @@ canvas {
   margin-top: 20px;
   margin-bottom: 20px;
   display: inline-block;
-  box-shadow: 0 8px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 15px 15px rgba(0, 0, 24, 0.2);
   width: 30%;
   height: auto;
-  border-radius: 2px;
+  border-radius: 30px;
   align-items: center;
+  border: aliceblue;
+  border-style: dotted;
 }
 
 
@@ -179,7 +208,6 @@ hr.uc-hr {
 
 /* ========== Under Construction Divider (no JS) ========== */
 .uc-hr {
-  /* Theme variables — tweak these to match your site */
   --uc-stripe: 18px; /* stripe width */
   --uc-speed: 2.4s; /* animation cycle */
   --uc-yellow: #facc15; /* caution yellow */
@@ -266,7 +294,7 @@ hr.uc-hr {
 
 /* ========== Sidebar – polished & responsive ========== */
 :root {
-  --sb-bg: salmon;
+  --sb-bg: lightcoral;
   --sb-fg: #111;
   --sb-fg-invert: #fff;
   --sb-accent: navajowhite;
@@ -282,7 +310,7 @@ hr.uc-hr {
   position: fixed;
   top: 0;
   left: 0;
-  width: clamp(160px, 20%, 260px); /* responsive width */
+  width: clamp(160px, 25%, 260px); /* responsive width */
   height: 100dvh;
   background: var(--sb-bg);
   color: var(--sb-fg-invert);
@@ -303,7 +331,7 @@ hr.uc-hr {
 
 @media (hover: hover) and (min-width: 768px) {
   .sidebar {
-    transform: translateX(-5px);
+    transform: translateX(-2px);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   .sidebar:hover {

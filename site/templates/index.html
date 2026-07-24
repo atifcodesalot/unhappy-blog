@@ -29,8 +29,9 @@
                 <li class="sb-element" target="lines-and-projections">Lines and Their Projections</li>
                 <li class="sb-element" target="model-view-transformations">Model and View Transformations</li>
                 <li class="sb-element" target="perspective-correct-interpolation">Perspective Correct Interpolation</li>
-                <li class="sb-element" target="view-frustrum">The View Frustrum</li>
+                <li class="sb-element" target="view-frustum">The View frustum</li>
                 <li class="sb-element" target="Rasterization">Rasterization</li>
+                <li class="sb-element" target="Shading">Shading</li>
             </ul>
             <div class="sb-footer">
                 <p>© Burzum wishes you to have fun!</p>
@@ -43,6 +44,7 @@
 
         <header>
             Burzum's take on Computer Graphics
+            <img src="../static/img/dolphin.png" alt="metaballs">
         </header>
         
         <section class="textChunk" id="intro">
@@ -846,7 +848,7 @@
         </section>
             
         
-        <section class="textChunk" id="view-frustrum">
+        <section class="textChunk" id="view-frustum">
             <h2> Clipping </h2>
 
             <p>
@@ -870,7 +872,7 @@
                 as it shrieks in pain while trying to render chunks as far away as the andromeda galaxy (minecraft worlds are bigger than you might think). <br>
 
                 What we need is a threshold that we use to not render something if they are too far away, so we introduce another constraint: a "far plane" as it is conventionally called. This along with our
-                viewport or the "near plane" makes up a frustrum (of a pyramid). Anything that is outside this frustrum is ignored or "clipped". 
+                viewport or the "near plane" makes up a frustum (of a pyramid). Anything that is outside this frustum is ignored or "clipped". 
                 But how can we impose this mathematically? Let's see. 
             </p>
 
@@ -899,10 +901,10 @@
                 The core idea is this, please try to give your full attention here; let \((x_e, y_e, z_e)\) be a point in eye space, then if the projected \(x_e\),
                 \(y_e\), is NOT on the viewport boundaries (\([-\frac{W}{2}, \frac{W}{2}]\)
                  and \([-\frac{H}{2}, \frac{H}{2}]\) respectively) OR \(z_e\) is not in the
-                boundary \([n, f]\) then the point is not in our view frustrum and is clipped. Else? It is in our view! <br>
-                I truly believe the idea is simple. For a point to be in our view frustrum, it needs to be in our
+                boundary \([n, f]\) then the point is not in our view frustum and is clipped. Else? It is in our view! <br>
+                I truly believe the idea is simple. For a point to be in our view frustum, it needs to be in our
                 viewport when we project it, AND its depth before projecting (z coordinate in the view space) 
-                must be between the near and the far plane. That is the whole point of the view frustrum!
+                must be between the near and the far plane. That is the whole point of the view frustum!
 
                 Alright, now; if we want to integrate this into our projection matrix, 
                 it is convenient to follow the NDC (normalized device coordinates) framework which is also used by OpenGL.
@@ -911,10 +913,10 @@
                 and then we divide the clip coordinates by the homogenous part to obtain NDC. Why do we do such thing and what exactly are NDC and clip coordinates?
                 NDC is just another coordinate space that "warps" our view space. It warps it so that 
                 in this coordinate space the points inside the unit cube
-                -whose center is at origin- are transformed from points in our view space -that were inside our view frustrum.
+                -whose center is at origin- are transformed from points in our view space -that were inside our view frustum.
                 In other words: if the points within the NDC space is outside the mentioned cube 
                 (outside of ranges \([-1, 1]\) in every dimension), the original points that were put into NDC were not
-                in our view frustrum and they are clipped, discarded. 
+                in our view frustum and they are clipped, discarded. 
                 Clip coordinates are just the normalized device coordinates before the perspective divide, which
                 is simply dividing the (clip) point by its homogenous coordinate to obtain the projected coordinates.
                 To start mathematically, let's see how we can put view space coordinates into clip coordinates.
@@ -1232,22 +1234,306 @@
         </section>
 
         <section class="textChunk" id="Shading">
+            <h2> Shading </h2>
             <p> In this chapter I will start getting into the details of rasterization of triangles, and how shading is done, generally.
-                This chapter will probably be mathematically heavy.
+                This chapter may be mathematically heavy, fasten your seatbelts... 
             </p>
 
             <h2> What does shading mean, and what does a shader do?</h2>
-
+                <p>
+                    The million dollar question (not really). A shader basically a program that operates on graphics data, that is there
+                    to define the geometry of the stuff to be rendered. That is the most general definition I can think of.
+                    The term is so overlapping and messy I don't think it is proper to say that every shader "shades". 
+                    For example a geometry shader doesn't do any shading, in the sense of determining color based on lighting, shadows,
+                    it rather operates on geometric data to create new primitives, modify them and whatnot. 
+                    In this chapter when I say "shading", it will be closer to 
+                    the operation of determining a vertex's or fragment's color, hence closer to the literal definition of the word.
+                    This is because currently the blog is focused on the mathematics and fundamentals.
+                    In later parts of the blog, I hope to discuss various other types of shaders.
+                </p>
             
 
             <h2>Vertex Shading</h2>
-            
+                <p>
+                    To understand the concept of vertex shading, it would be helpful to try to understand generally how
+                    computer graphics models work. A model needn't be a collection of primitives that lie on a plane, like
+                    triangles or quadrilaterals or conic sections, they can also be parametric curves, but for real time graphics
+                    they most of the time indeed lie on an ambient plane. Consequently, most models consist of vertices of the primitives
+                    they include. As discussed, those vertices are defined in world space. Getting them onto our virtual viewport and finally the display 
+                    (finding their pixel coordinate on the raster display) and deciding that pixel's color is called vertex shading.
+                    We have already seen how to get them onto the viewport, almost; we haven't discussed the transformation
+                    from NDC to screen space. If you are following along you might have realized it is actually very trivial:
 
-            <hr class="uc-hr"
+                    $$
+                    x_{screen} = \frac{x_{ndc} + 1}{2} \times  \text{Resolution width}
+                    $$
+
+                    $$
+                    y_{screen} = \text{Resolution height} - \frac{y_{ndc} + 1}{2} \times \text{Resolution height}
+                    $$
+
+                    This is just the mapping: \([-1, 1] \mapsto [0, W_{display}]\) and \([1, -1] \mapsto [0, H_{display}]\) <br>
+
+                    The flip on the y coordinates is due to the very convenient flipped coordinate system we use on computers.
+                    Have you ever used SDL or pygame? You might have realized it by now.
+
+                    So we know how to get the pixel position of a vertex, how do we "shade" it? Well this is dependent on
+                    the shader's operation. It can use the normal value associated with the vertex to compute a lighting scaler;
+                    using diffuse, specular or any type of lighting of choice. It can account for shadows, even reflections. In a nutshell,
+                    it is programmable, and that is the point of a vertex and any shader. But ultimately, the vertex shader determines a pixel
+                    position and computes a color for that pixel.
+                </p>
+
+
+            <h2>Fragment Shading</h2>
+                <p>
+                    This is the most important part of rasterization and don't let anyone tell you otherwise! First it would be useful to 
+                    repeat and define the whole operation of fragment shading once again: 
+                    it finds the pixels that are not vertex pixels and computes their color!
+                    How is it done? Okay, here we go again &#128515;
+
+                    Let's start with triangles (the most common primitive of them all), as we have seen
+                    we can define them with barycentric coordinates:
+
+                    $$
+                    q(\alpha, \beta, \gamma) = \gamma C + \alpha A +\beta B 
+                    $$
+
+                    now, this is crucial; if \(q\) is indeed a triangle, then:
+
+                    $$
+                    \alpha + \beta + \gamma = 1
+                    $$
+
+                    and 
+
+                    $$ 
+                    \gamma \ge 0
+                    $$
+
+                    Must hold.
+
+
+                    Why? Let's see, the original definition was:
+
+                    $$
+                    q(\alpha, \beta) = C + \alpha (A - C) + \beta (B - C) 
+                    $$
+
+                    Considering \(|(A - C)|\), the length of the side \(|AC|\):
+
+                    $$
+                    \alpha \in [0, 1]
+                    $$
+
+                    and due to the exact reason:
+
+                    $$
+                    \beta \in [0, 1]
+                    $$
+
+                    Now let's try to speak to intuition: consider what happens when \(\alpha + \beta > 1\)? <br>
+
+                    E.g 
+
+                    if we define:
+
+                    $$
+                    D = C + (A - C) + (B - C) = q(1, 1)
+                    $$
+
+
+                    then \(CBDA\) is a parallelogram, in which \(|BC|\) is one of its diagonals. 
+                    So \(|BC|\) is just the lines that includes all \(q(\alpha, \beta)\) such that:
+
+                    $$
+                    \alpha + \beta = 1
+                    $$
+
+                    Neat! Then we can conclude: if \(\alpha + \beta > 1\),
+                    \(q(\alpha, \beta)\) is in the other half of the triangle of the parallelogram \(CBDA\). <br>
+                    Therefore for all \(\alpha\) and \(\beta\),
+                    
+                    \(q(\alpha, \beta)\) is inside the triangle if and only if \(\alpha + \beta \le 1\) (and of course \(\alpha, \beta \ge 0\))!
+                    And consequently, by definition \(\gamma \in [0, 1]\). <br> <br>
+
+                    Now let's imagine we are a fragment shader, or something... We operate on the screen space, after the vertex
+                    shader has given us the vertex pixel coordinates. For a triangle, we see three projected vertices, and we know that
+                    a point inside the projected triangle is also inside the original triangle due to the fundamental theorem of 
+                    projective geometry, discussed in prior chapters. We can try to interpolate the triangle via barycentric coordinates,
+                    fix \(\alpha\) and \(\beta\) and let \(\gamma\) run at \([0, 1-\alpha-\beta]\), and then one step forward \(\beta\),
+                    then \(\alpha\)... The problem is as we have talked about: we are in finite space, the screen space. How do we determine
+                    the step size for the barycentrics? If we determine a small value like \(0.001\), there is a good chance we will land on the same
+                    pixel most of the time due to this. The better approach is to work from the screen space coordinates (pixel coordinates) And
+                    find each point's barycentric coordinate based on the projected vertices we have at hand, and then determine if that point is inside
+                    the triangle by the found barycentrics. How would we find barycentrics from screen space coordinates? <br>
+
+                    Consider the barycentric equation we have seen like a million times 
+                    (yeah it is getting tiring for me as well), once again:
+
+                    $$
+                    q(\alpha, \beta) = C + \alpha (A - C) + \beta (B - C) 
+                    $$
+
+                    Intuitively, \(\alpha\) determines how much the points goes in the direction of the side \(|AC|\), 
+                    More precisely:
+                    
+                    $$
+                    \alpha = \text{How much the P - C is away from |BC| with relative to |AC|}
+                    $$
+
+                    Okay, how do we actually find it? Well, with our favourite tool: math (linear algebra, specifically).
+
+                    let 
+                    $$
+                    (A-C) = \vec{a}
+                    $$
+                    $$
+                    (B-C) = \vec{b}
+                    $$
+                    $$
+                    (P-C) = \vec{p}
+                    $$
+
+                    for convenience, let's also denote the magnitude of the vectors:
+
+                    $$
+                    ||\vec{a}|| = \mathbf{a}
+                    $$
+                    $$
+                    ||\vec{b}|| = \mathbf{b}
+                    $$
+
+                    Consider:
+                    $$
+                    \vec{p} = \alpha \vec{a} + \beta \vec{b}
+                    $$
+
+                    We know the dot product is distributive, let's take the dot product of \(\vec{p}\) with \(\vec{a}\):
+
+                    $$
+                    \vec{p} \cdot \vec{a}  = \alpha (\vec{a} \cdot \vec{a}) + \beta (\vec{b} \cdot \vec{a})
+                    $$
+                    $$
+                    = \alpha \mathbf{a}^2 + \beta (\vec{b} \cdot \vec{a})
+                    $$
+
+                    And do the same thing with \(\vec{b}\):
+
+                    $$
+                    \vec{p} \cdot \vec{b} = \alpha (\vec{b} \cdot \vec{a}) + \beta \mathbf{b}^2
+                    $$
+
+                    Let's denote the dot product of \(\vec{a}\) and \(\vec{a}\) \(s\), we have two equations:
+
+                    $$
+                    s(\vec{p} \cdot \vec{b}) = \alpha s^2 + \beta \mathbf{b}^2 s
+                    $$
+                    $$
+                    \mathbf{b}^2(\vec{p} \cdot \vec{a}) =  \alpha \mathbf{a}^2 \mathbf{b}^2 + \beta \mathbf{b}^2 s
+                    $$
+
+                    substract bottom eq from top:
+
+                    $$
+                    s(\vec{p} \cdot \vec{b}) - \mathbf{b}^2(\vec{p} \cdot \vec{a}) = \alpha s^2 - \alpha \mathbf{a}^2 \mathbf{b}^2
+                    $$
+
+                    We finally find:
+
+                    $$
+                    \alpha = \frac{s(\vec{p} \cdot \vec{b}) - \mathbf{b}^2(\vec{p} \cdot \vec{a})}{s^2 - \mathbf{a}^2 \mathbf{b}^2}
+                    $$
+
+                    Or:
+
+                    $$
+                    \alpha = \frac{(\vec{b} \cdot \vec{a})\cdot (\vec{p} \cdot \vec{b}) - \mathbf{b}^2(\vec{p} \cdot \vec{a})}
+                    {(\vec{b} \cdot \vec{a})^2 - (\mathbf{a}\mathbf{b})^2}
+                    $$
+
+                    From <a href="https://en.wikipedia.org/wiki/Lagrange%27s_identity"> lagrange's identity</a>:
+
+                    $$
+                    \alpha = \frac{(\vec{b} \times \vec{p}) \cdot (\vec{a} \times \vec{b})}
+                    {||\vec{a} \times \vec{b}||^2 }
+                    $$
+
+                    And for \(\beta\), substituting:
+
+                    $$
+                    \bigg(\vec{p}\cdot{b} \ + \frac{(\vec{b} \times \vec{p}) \cdot (\vec{a} \times \vec{b})}
+                    {||\vec{a} \times \vec{b}||^2 } \vec{a}\cdot\vec{b}\biggr) \mathbf{b}^{-2} = \beta 
+                    $$
+
+                    or compactly: 
+
+                    $$
+                    \beta = \frac{(\vec{a} \times \vec{p}) \cdot (\vec{a} \times \vec{b})}
+                    {||\vec{a} \times \vec{b}||^2 }
+                    $$
+
+
+
+                    These are precisely the formulas we can use to compute the screen space barycentrics. <br> <br>
+
+
+                    Ok, we have come a long way. For an arbitrary triangle, we can start iterating points from its bounding box,
+                    compute \(\alpha\) and \(\beta\), then decide if that point is inside the triangle by
+                    checking if \(\alpha + \beta \le 1\), for \(\alpha \ge 0, \ \beta \ge 0\). <br>
+
+
+                    Now, we saw that a fragment shader knows a fragment inside the triangle 
+                    (that is on the viewport, hence the single quotes) \(\triangle C'A'B'\) is:
+
+                    $$
+                    f_{vp} = \gamma' C' + \alpha' A' + \beta' B', \ \text{where} \ \alpha' + \beta' + \gamma' = 1
+                    $$
+
+                    We already related:
+
+                    $$
+                    f_{vs} = f_{vp} \cdot \mathfrak{P} (\vec{P}')
+                    $$
+
+                    
+                    $$
+                    \mathfrak{P} (\vec{P}) = \bigg(\frac{\alpha'}{w_A} + \frac{\beta'}{w_B} + \frac{\gamma'}{w_C} \bigg)^{-1}
+                    $$
+
+                    So we can already get the fragment's viewspace coordinate. That is of course if the projected surface
+                    could be parametrized linearly; which we assumed long ago, but still worth noting.
+
+                    Aaand there we go! This is the mathematical backbone of fragment shading!
+
+                    <ol>
+                        <li>
+                            Search for points inside primitives (quads, triangles), typically start from the bounding boxes
+                        </li>
+
+                        <li>
+                            Check if the point is inside
+                        </li>
+
+                        <li>
+                            If so, relate to the viewspace barycentrics with the perspective factor
+                        </li>
+                    </ol>
+        </section>
+
+        <hr class="uc-hr"
             data-label="🚧 UNDER CONSTRUCTION — WIP AHEAD"
             aria-label="Under construction divider">
-            <p>To be continued...</p>
+
+        <section class="textChunk" id="Lighting">
+            <h2> Lighting </h2>
+            <p>
+                -------------------------------------------------------------------------------------------
+                -------------------------------------------------------------------------------------------
+            </p>
+
         </section>
+        <p></p>
 
         <footer>
 
