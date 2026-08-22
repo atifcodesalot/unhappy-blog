@@ -180,6 +180,30 @@ canvas {
 
 footer {
   color: black;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  background-color: salmon;
+  font-size: 0.8em;
+}
+
+footer span {
+  color: black;
+}
+
+footer a {
+  color: darkslategray;
+  text-decoration: underline;
+}
+chapter-links {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+chapter-links.span {
+  margin: 0 10px;
 }
 
 /* Responsive Design */
