@@ -1,0 +1,88 @@
+
+
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="static/css/style2.css">
+    {% include 'tech_head.html' %}
+</head>
+
+<header>
+    Burzum's take on Computer Graphics
+    <img src="../static/img/dolphin.png" alt="dolphimesh">
+</header>
+
+<body>
+    {% include '_sidebar.html' %}
+
+    <section class="textChunk" id="model-view-transformations">
+        <h2> Model and View Transformations </h2>
+        <p>
+            When you look up, things on the ground go down. e.g, when you look at a car, then look up, the car goes down in your sight and now you are looking at the sky. Look at the top left corner of your screen then look back, these words appeared south-east.
+            It is because within your view space, they really are south-east. Shortly and more simply, when you rotate your head, your view space changes. And your view space is just where everything exactly in front of your head is on the \(z\) axis.
+            It is just a transformation from one vector space to another: $$ V \to V' $$ It is very advantageous to transform world coordinates to view coordinates and then project the points onto a viewport. The justification is that it is extremely
+            easier to project a point, say onto a viewport defined as: $$ z = 1 $$ than to a viewport $$ z = 2x + y + 5 $$ Which is would actually be the world space equation of your viewport when you rotate your head and then move a little! But, no matter
+            what you do, roll, yaw, pitch, move a light year away from your original position, your viewport is always defined as \(z = 1\) in your view space (assuming you started with \(z=1\)). Notice that your view space does not only change by your
+            rotating your head, you can also move around, a.k.a translate. This one's less tricky: wherever you go the position of your head in world space is the origin of your view space. So a point \(P_{world}\) at world space is at: $$ P_{world} -
+            x_{head} $$
+
+
+            <br>
+            <br> Let's formalize the rotation part, assuming a left-handed coordinate system, when you are looking at the direction \( \hat{d} \), you have a coordinate system with basis: $$ \mathcal{B} = \big\{ \hat{b}_1, \ \hat{b}_2, \ \hat{b}_3 \big\}
+            $$ where: $$ \hat{b}_3 = \hat{d} $$ $$ \hat{b}_2 = \hat{d}_{\perp} $$ $$ \hat{b}_1 = \hat{d}_{\perp} \times \hat{b}_3 $$ relative to the global world space! Transformation to your view is: $$ P_{view} \mapsto (\hat{b}_1 \cdot P_{world})\hat{b}_1
+            + (\hat{b}_2 \cdot P_{world})b_2 + (\hat{b}_3 \cdot P_{world})\hat{b}_3 $$ or: $$ P_{view} = \begin{bmatrix} \hat{b}_1^T \\ \hat{b}_2^T \\ \hat{b}_3^T\end{bmatrix} \cdot P_{world} $$ $$ = \mathbf{M_{rotation}} \cdot P_{world} $$ Where \( P_{world}\)
+            is the position vector of the point.
+            <br> But why? That would be a good question. This is going to be kind of mathematical &#128515
+            <br>
+
+            <div class="note">
+                <label>
+                    Please look at the definition of the <a href="https://www.mathsisfun.com/algebra/vectors-dot-product.html">dot product</a> and familiarize yourself with it if you haven't already! Or it is going to be very difficult from now on...
+                </label>
+
+            </div>
+        </p>
+
+        <p>
+
+            Alright so what we are esentially trying to do is a coordinate system transformation, without taking into the camera's position into account. Let's say we have two bases with the same origin: \(\mathcal{E}\), the basis of the euclidean space we all know
+            and love \(\mathbb{R}^3\): $$ \mathcal{E} = \big\{ (1, 0, 0), \ (0, 1, 0), \ (0, 0, 1) \big\} $$ and another random basis: \(\mathcal{B}\).
+            <br> Now consider a point \(P_0\) represented in \(\mathcal{E}\): $$ P_0 = (x_0, y_0, z_0) $$ The key is to realize that this also equals to: $$ = \big( \hat{e}_1\cdot P_0, \ \hat{e}_2\cdot P_0, \ \hat{e}_3\cdot P_0 \big) $$ Meaning that each
+            coordinate is just the dot product of the point's position vector with the respective basis! We aim to represent it in the \(\mathcal{B}\) basis now: $$ {P_0}' = \big(\hat{b}_1\cdot P_0, \ \hat{b}_2\cdot P_0, \ \hat{b}_3\cdot P_0 \big) $$
+            Because those dot products are essentially the projections of the vector from the origin to \(P_0\) onto the axis, basis vectors of \(\mathcal{B}\):
+
+            <img src="../static/img/axes.png" alt="axes"></img>
+
+
+            This is great, however we still need to take your head's, or the camera's position into account. Let's try to find a matrix such that: $$ \mathbf{M_t} (\vec{x}) \cdot \vec{v} = \vec{v} + \vec{x} $$ so that we can project any point \(P_{world}\) to the
+            viewport of our camera: $$ P' = \mathbf{M_{proj}} \cdot \mathbf{M_{rotation}} \cdot \mathbf{M_translation} \cdot P_{world} $$ As we have said in the affine transformations section, translation is an affine transformation; but not a linear
+            one! So it is going to be a 4x4 matrix.
+            <br> It is about time once again to augment our vector by a homogenous part, that is we create a homogenous coordinate: $$ \vec{P} = \begin{bmatrix} x \\ y \\ z \\ 1 \end{bmatrix} $$ This way we can express non-linear and non-affine transformations
+            via matrix multiplications! And it is known that matrix multiplication is <a href="https://en.wikipedia.org/wiki/Associative_property">associative</a>. Meaning all symbols being matrices: $$ \mathbf{(AB)C = A(BC)} $$ And: $$ \mathbf{A}(\mathbf{B}(\mathbf{C}\mathbf{D}))
+            = (\mathbf{A}\mathbf{B}\mathbf{C})\mathbf{D} $$ Hopefully the picture is clear: As we have seen before, the matrix that projects a point onto a plane that is vertical and sits at \(x = d\) is: $$ \mathbf{M_{proj}} = \begin{bmatrix} 1 & 0 &
+            0 & 0 \\ 0 & 1 & 0 & 0 \\ 0& 0 & 1 & 0 \\ 0 & 0 & \frac{1}{d} & 0\end{bmatrix} $$ Now let's get back to finding the translation matrix. It is easier to find it intuitively rather than mathematically, so we will use our intuition for now.
+            <br> A translated point reads as: $$ \vec{P}'_t = \begin{bmatrix} x + \delta x \\ y + \delta y \\ z + \delta z \\ 1 \end{bmatrix} $$ Notice the homogenous part is still \(1\). Considering we will be multiplying the last column of our translation
+            matrix with the homogenous part which is \(1\), anything in the last column will be added to the respect each row in our position vector! $$ \vec{P}'_t = \vec{P} \cdot \begin{bmatrix} 1 & 0 & 0 & \delta x \\ 0 & 1 & 0 & \delta y \\ 0 & 0 &
+            1 & \delta z \\ 0 & 0 & 0 & 1\end{bmatrix} $$ And there is our translation matrix! We have derived every matrix to obtain our final matrix that orients a point to the viewspace and projects it onto our viewport!
+
+        </p>
+
+        <h2> The View-Projection Matrix </h2>
+
+        <p>
+            So let's say we have a camera at \(\vec{p}\) with axes: \(\hat{b}_1\), \(\hat{b}_2\) and \(\hat{b}_3\) and a viewport sitting at \(z=d\) (in the camera's viewspace) then our view-projection matrix is: $$ \mathbf{M}_{proj} \cdot \mathbf{M}_{view} = \begin{bmatrix}
+            1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0& 0 & 1 & 0 \\ 0 & 0 & \frac{1}{d} & 0\end{bmatrix} \cdot \begin{bmatrix} \hat b_{1x} & \hat b_{1y} & \hat b_{1z} & -(\hat b_1 \cdot \vec{p}) \\ \hat b_{2x} & \hat b_{2y} & \hat b_{2z} & -(\hat b_2 \cdot
+            \vec{p}) \\ \hat b_{3x} & \hat b_{3y} & \hat b_{3z} & -(\hat b_3 \cdot \vec{p}) \\ 0 & 0 & 0 & 1 \end{bmatrix} $$ I have used the associative property of matrices to evaluate \(\mathbf{M}_{rotation} \cdot \mathbf{M}_{translation}\) to obtain
+            \(\mathbf{M}_{view}\). The order is crucial. We assume in our view matrix that the homogenous part is \(1\), so it must be multiplied -with the point- before the projection matrix. The only thing missing is clipping (and viewport transformations)
+            now, which we will delve into shortly after. But firstly, it is time for one of the most important mathematical aspect of computer graphics.
+        </p>
+
+    </section>
+
+</body>
+
+{% include 'footer.html' %}
+
+</html>
