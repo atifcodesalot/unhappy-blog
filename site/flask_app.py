@@ -5,6 +5,19 @@ from flask import *
 app = Flask(__name__)
 
 
+CHAPTERS = [
+    "intro",
+    "introduction",
+    "projective-geometry",
+    "affine-transformations",
+    "lines-and-projections",
+    "model-view-transformations",
+    "perspective-correct-interpolation",
+    "view-frustum",
+    "rasterization",
+    "shading"
+]
+
 @app.route("/baskan03321_")
 def baskan():
     return render_template("baskan.html")
@@ -13,13 +26,6 @@ def baskan():
 def graphics():
     return render_template("cg.html")
 
-@app.route("/perspective")
-def perspective():
-    return render_template("index.html")
-
-@app.route("/")
-def index():
-    return perspective()
 
 @app.route("/cow")
 def cow():
@@ -29,9 +35,16 @@ def cow():
 def diamond():
     return send_from_directory("static", "diamond.obj")
 
-@app.route("/idravawai")
-def wai():
-    return render_template("machinewai.html")
+@app.route("/")
+def index():
+    return render_template("intro.html")
+
+@app.route('/<path:path>', methods=['GET'])
+def catch_all(path):
+    if path in CHAPTERS:    
+        return render_template(f"{path}.html")
+    else:
+        abort(404)
 
 
 if __name__ == "__main__":
