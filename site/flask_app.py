@@ -29,7 +29,7 @@ def graphics():
 
 @app.route("/cow")
 def cow():
-    return send_from_directory("static", "cow.obj")
+    return send_from_directory("static", "models/cow.obj")
 
 @app.route("/diamond")
 def diamond():
@@ -37,7 +37,7 @@ def diamond():
 
 @app.route("/")
 def index():
-    return render_template("intro.html")
+    return redirect("/intro")
 
 @app.route('/<path:path>', methods=['GET'])
 def catch_all(path):
