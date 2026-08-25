@@ -1,25 +1,32 @@
+import {
+  glMatrix,
+  mat4,
+  vec4,
+  vec3,
+} from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.4/+esm";
 
+import { vertexShader, fragmentShader } from "./shaders.js";
+import { ObjParser } from "./obj-parser.js";
 
-const URL = "/cow";
+const modelURL = "/cow";
 const parser = new ObjParser();
 
-
 function identitym4() {
-  return glMatrix.mat4.identity(glMatrix.mat4.create());
+  return mat4.identity(mat4.create());
 }
 
 const I = identitym4();
 
 function perps(vec) {
-  const perp = math.matrix([-vec.get([1]), vec.get([0])])
+  const perp = math.matrix([-vec.get([1]), vec.get([0])]);
   return [perp, math.multiply(-1, perp)];
 }
 
 function rotate_mat4(point, angle, axis) {
   const R = identitym4();
-  glMatrix.mat4.rotate(R, R, glMatrix.glMatrix.toRadian(angle), axis);
-  const p = glMatrix.vec4.fromValues(point[0], point[1], point[2], 1);
-  glMatrix.vec4.transformMat4(p, p, R);
+  mat4.rotate(R, R, glMatrix.toRadian(angle), axis);
+  const p = vec4.fromValues(point[0], point[1], point[2], 1);
+  vec4.transformMat4(p, p, R);
   return math.matrix([p[0], p[1], p[2]]);
 }
 
@@ -32,18 +39,22 @@ async function load_mesh(url) {
 class Camera {
   constructor(pos, look_direction) {
     this.pos = math.matrix(pos);
-    this.basis = [math.matrix([1, 0, 0]), math.matrix([0, 1, 0]), math.matrix(look_direction)];
+    this.basis = [
+      math.matrix([1, 0, 0]),
+      math.matrix([0, 1, 0]),
+      math.matrix(look_direction),
+    ];
     this.look_direction = this.basis.at(2);
     this.up = this.basis.at(1);
-    this.view_matrix = glMatrix.mat4.create();
+    this.view_matrix = mat4.create();
   }
 
   get_view_matrix() {
-    glMatrix.mat4.lookAt(
+    mat4.lookAt(
       this.view_matrix,
       this.pos.toArray(),
       this.look_direction.toArray(),
-      this.up.toArray()
+      this.up.toArray(),
     );
     return this.view_matrix;
   }
@@ -54,34 +65,47 @@ class Camera {
 
   rotate(angle, axis) {
     // normalize axis (vec3)
-    const _axis = glMatrix.vec3.clone(axis);
-    glMatrix.vec3.normalize(_axis, _axis);
+    const _axis = vec3.clone(axis);
+    vec3.normalize(_axis, _axis);
 
-    // build rotation matrix 4×4 around arbitrary axis
-    const R = identitym4();
-    glMatrix.mat4.rotate(R, R, glMatrix.glMatrix.toRadian(angle), _axis);
-
-    this.look_direction = rotate_mat4(this.look_direction.toArray(), angle, _axis);
+    this.look_direction = rotate_mat4(
+      this.look_direction.toArray(),
+      angle,
+      _axis,
+    );
 
     // rotate basis (each is vec3 -> vec4 with w=0)
-    this.basis = this.basis.map(b => rotate_mat4(b.toArray(), angle, _axis));
+    this.basis = this.basis.map((b) => rotate_mat4(b.toArray(), angle, _axis));
     this.up = this.basis[1];
+  }
 }
 
+class PropCamera extends Camera {
+  // return a math matrix instead
+  get_view_matrix() {
+    const [b1, b2, b3] = this.basis;
+    this.view_matrix = math.matrix([
+      [...b1.toArray(), -1 * math.dot(b1, this.pos)],
+      [...b2.toArray(), -1 * math.dot(b2, this.pos)],
+      [...b3.toArray(), -1 * math.dot(b3, this.pos)],
+      [0, 0, 0, 1],
+    ]);
+    return this.view_matrix;
+  }
 }
-
-class PropCamera extends Camera {}
 
 class PropViewport {
   constructor(camera, z_distance, width, height) {
-    this.camera = camera
-    this.center = math.add(math.matrix(camera.pos), math.multiply(z_distance, camera.basis.at(2)));
+    this.camera = camera;
+    this.center = math.add(
+      math.matrix(camera.pos),
+      math.multiply(z_distance, camera.basis.at(2)),
+    );
     this.z_distance = z_distance;
     this.width = width;
     this.height = height;
     this.look = camera.basis.at(2);
     this.init_corners();
-    
   }
 
   init_corners() {
@@ -89,18 +113,32 @@ class PropViewport {
     const w = this.width;
     const h = this.height;
     this.corners = [
-      math.add(this.center, math.add(math.multiply(-w / 2, i), math.multiply(h / 2, j))),
-      math.add(this.center, math.add(math.multiply(w / 2, i), math.multiply(h / 2, j))),
-      math.add(this.center, math.add(math.multiply(-w / 2, i), math.multiply(-h / 2, j))),
-      math.add(this.center, math.add(math.multiply(w / 2, i), math.multiply(-h / 2, j))),
+      math.add(
+        this.center,
+        math.add(math.multiply(-w / 2, i), math.multiply(h / 2, j)),
+      ),
+      math.add(
+        this.center,
+        math.add(math.multiply(w / 2, i), math.multiply(h / 2, j)),
+      ),
+      math.add(
+        this.center,
+        math.add(math.multiply(-w / 2, i), math.multiply(-h / 2, j)),
+      ),
+      math.add(
+        this.center,
+        math.add(math.multiply(w / 2, i), math.multiply(-h / 2, j)),
+      ),
     ];
   }
 
   adjust_to_camera() {
     this.look = this.camera.basis.at(2);
-    this.center = math.add(math.matrix(this.camera.pos), 
-                            math.multiply(this.z_distance, this.look));
-    
+    this.center = math.add(
+      math.matrix(this.camera.pos),
+      math.multiply(this.z_distance, this.look),
+    );
+
     this.init_corners();
   }
 
@@ -114,8 +152,8 @@ class PropViewport {
     return math.matrix([
       [1, 0, 0, 0],
       [0, 1, 0, 0],
-      [0, 0, 1, 0],
-      [0, 0, 1 / this.z_distance, 0],
+      [0, 0, 1, 1 / this.z_distance],
+      [0, 0, 0, 0],
     ]);
   }
   //
@@ -124,8 +162,12 @@ class PropViewport {
 // Controller for prop simulation
 class PropSimulator {
   constructor(...opt_meshes) {
-    this.pp_camera = new PropCamera(math.matrix([0, 0, 0]), math.matrix([0, 0, 1]));
-    this.pp_viewport = new PropViewport(this.pp_camera, 5, 10, 10)
+    this.pp_camera = new PropCamera(
+      math.matrix([0, 0, 0]),
+      math.matrix([0, 0, 1]),
+    );
+    this.pp_viewport = new PropViewport(this.pp_camera, 3, 4, 4);
+    this.pp_perspective = identitym4();
     this.opt_meshes = opt_meshes;
   }
 
@@ -143,15 +185,45 @@ class PropSimulator {
     return;
   }
 
-  project_on_viewport(point) {
-    
+  get_prop_perspective() {
+    this.pp_perspective = this.pp_viewport.perspective()
+    // console.log(this.pp_camera.get_view_matrix())
   }
 
   draw_projection_lines(controller) {
-    let pairs = parser.vertices.map((e, i) => [math.add(controller.mesh.pos.toArray(), e), this.pp_camera.pos.toArray()]);
-    pairs = pairs.map((e, i) => i % 12 === 0 ? e : null).filter(e => e !== null);
-    pairs = pairs.flat()
-    controller.draw_lines(pairs, [0.0, 0.0, 0.0, 0.4]);
+    const verts = controller.model.vertices;
+    const points = [];
+
+    for (let i = 0; i < verts.length; i += 3*4) {
+      const p = vec4.fromValues(verts[i], verts[i + 1], verts[i + 2], 1);
+
+      vec4.transformMat4(p, p, controller.model_matrix);
+
+      points.push([p[0], p[1], p[2]], this.pp_camera.pos.toArray());
+    }
+
+    controller.draw_lines(points, [1.0, 1.0, 1.0, 0.005]);
+  }
+
+  draw_projection_points(controller) {
+    const verts = controller.model.vertices;
+    const points = [];
+
+    for (let i = 0; i < verts.length; i += 3*4) {
+      let p = math.matrix([verts[i], verts[i + 1], verts[i + 2], 1]);
+      const model = math.reshape(
+        math.matrix(Array.from(controller.model_matrix)),
+        [4, 4],
+      );
+      p = math.multiply(p, model)
+      p = math.multiply(p, this.pp_perspective);
+
+      const w = p.get([3]);
+      // perspective divide
+      points.push([p.get([0]) / w, p.get([1]) / w, p.get([2]) / w]);
+    }
+
+    controller.draw_points(points, [1.0, 0, 0.0, 0.6]);
   }
 
   draw_prop_viewport(controller) {
@@ -165,19 +237,19 @@ class PropSimulator {
   draw_cosmetics(controller) {
     controller.draw_lines(
       [
-          this.pp_camera.pos.toArray(),
-          this.pp_viewport.corners.at(0).toArray(),
+        this.pp_camera.pos.toArray(),
+        this.pp_viewport.corners.at(0).toArray(),
 
-          this.pp_camera.pos.toArray(),
-          this.pp_viewport.corners.at(1).toArray(),
+        this.pp_camera.pos.toArray(),
+        this.pp_viewport.corners.at(1).toArray(),
 
-          this.pp_camera.pos.toArray(),
-          this.pp_viewport.corners.at(2).toArray(),
+        this.pp_camera.pos.toArray(),
+        this.pp_viewport.corners.at(2).toArray(),
 
-          this.pp_camera.pos.toArray(),
-          this.pp_viewport.corners.at(3).toArray(),
+        this.pp_camera.pos.toArray(),
+        this.pp_viewport.corners.at(3).toArray(),
       ],
-      [1.0, 0.3, 1.0, 0.6]
+      [0, 0, 0, 0.25],
     );
   }
 
@@ -188,25 +260,26 @@ class PropSimulator {
   }
 }
 
-
 class InputHandler {
-  constructor(prop_sim) {
-    this.prop_sim = prop_sim;
+  constructor(controller) {
+    this.prop_sim = controller.prop_sim;
+    this.controller = controller;
     this.keys = {};
-    window.addEventListener('keydown', (e) => {
+    window.addEventListener("keydown", (e) => {
       this.keys[e.key] = true;
     });
-    window.addEventListener('keyup', (e) => {
+    window.addEventListener("keyup", (e) => {
       this.keys[e.key] = false;
     });
   }
 
   onMouseMove(e) {
-    // calculate x and y drag
     const deltaX = e.movementX;
     const deltaY = e.movementY;
-    this.prop_sim.rotate(deltaX * 0.3, [0, 1, 0]);
-    this.prop_sim.rotate(deltaY * 0.3, [1, 0, 0]);
+    this.controller.rotate_mesh(deltaX * 0.01, [0, 1, 0])
+    this.controller.rotate_mesh(deltaY * 0.01, [1, 0, 1])
+    // this.prop_sim.rotate(deltaX * 0.3, [0, 1, 0]);
+    // this.prop_sim.rotate(deltaY * 0.3, [1, 0, 0]);
   }
 }
 
@@ -216,15 +289,19 @@ class webglController {
     this.gl = canvas_object.getContext("webgl");
     this.vertex_buffer = this.gl.createBuffer();
     this.index_buffer = this.gl.createBuffer();
-    this.vertex_shader = vertex_shader;
-    this.fragment_shader = fragment_shader;
+    this.vertex_shader = vertexShader;
+    this.fragment_shader = fragmentShader;
     this.program = this.gl.createProgram();
     this.init_program();
     this.camera = new Camera([0, 0, 0], [0, 1, 0]);
     this.init_matrices();
-    this.prop_sim = new PropSimulator()
-    this.input_handler = new InputHandler(this.prop_sim);
-    this.canvas.addEventListener('mousemove', (e) => this.input_handler.onMouseMove(e));
+    this.prop_sim = new PropSimulator();
+    this.input_handler = new InputHandler(this);
+    this.canvas.addEventListener("mousemove", (e) =>
+      this.input_handler.onMouseMove(e),
+    );
+    this.mesh_rot = [0, 0, 0];
+    this.model_matrix = identitym4();
   }
 
   static line_indices(point_count) {
@@ -238,7 +315,7 @@ class webglController {
 
     if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
       const error = `An error occurred compiling the shaders: ${this.gl.getShaderInfoLog(
-        shader
+        shader,
       )}`;
       console.error(error);
       alert(error);
@@ -252,11 +329,11 @@ class webglController {
   init_program() {
     const vertexShader = this.compile_shader(
       "VERTEX_SHADER",
-      this.vertex_shader
+      this.vertex_shader,
     );
     const fragmentShader = this.compile_shader(
       "FRAGMENT_SHADER",
-      this.fragment_shader
+      this.fragment_shader,
     );
     this.gl.attachShader(this.program, vertexShader);
     this.gl.attachShader(this.program, fragmentShader);
@@ -264,7 +341,7 @@ class webglController {
 
     if (!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) {
       const error = `Unable to initialize the shader program: ${this.gl.getProgramInfoLog(
-        this.program
+        this.program,
       )}`;
       console.error(error);
       alert(error);
@@ -275,13 +352,13 @@ class webglController {
   }
 
   init_matrices() {
-    this.projection_matrix = glMatrix.mat4.create();
-    glMatrix.mat4.perspective(
+    this.projection_matrix = mat4.create();
+    mat4.perspective(
       this.projection_matrix,
-      glMatrix.glMatrix.toRadian(120),
+      glMatrix.toRadian(120),
       1,
       0.1,
-      200.0
+      200.0,
     );
   }
 
@@ -296,7 +373,7 @@ class webglController {
       this.vertex_buffer,
       "ARRAY_BUFFER",
       Float32Array,
-      vertices
+      vertices,
     );
   }
 
@@ -305,14 +382,15 @@ class webglController {
       this.index_buffer,
       "ELEMENT_ARRAY_BUFFER",
       Uint16Array,
-      indices
+      indices,
     );
   }
 
-  set_matrices(model = I) {
+  set_matrices(mesh = null) {
     const mvlocation = this.gl.getUniformLocation(this.program, "model_view");
     let mv = identitym4();
-    glMatrix.mat4.multiply(mv, this.camera.get_view_matrix(), model);
+    const model = mesh ? this.model_matrix : I;
+    mat4.multiply(mv, this.camera.get_view_matrix(), model);
     this.gl.uniformMatrix4fv(mvlocation, false, mv);
     const plocation = this.gl.getUniformLocation(this.program, "projection");
     this.gl.uniformMatrix4fv(plocation, false, this.projection_matrix);
@@ -321,14 +399,28 @@ class webglController {
   set_color(color) {
     this.gl.uniform4fv(
       this.gl.getUniformLocation(this.program, "color"),
-      new Float32Array(color)
+      new Float32Array(color),
     );
   }
 
-  render(mode, elements, color, model = I, mesh=null) {
+  rotate_mesh(angle, axis) {
+    const r_idx = axis.indexOf(1);
+    this.mesh_rot[r_idx] += angle;
+    mat4.rotate(this.model_matrix, this.model_matrix, angle, axis);
+  }
+
+  scale_mesh(factor) {
+    mat4.scale(this.model_matrix, this.model_matrix, [factor, factor, factor]);
+  }
+
+  translate_mesh(tvec) {
+    this.mesh.pos = math.add(this.mesh.pos, tvec);
+    mat4.translate(this.model_matrix, this.model_matrix, tvec);
+  }
+
+  render(mode, elements, color, mesh = null) {
     const vbuffer = mesh ? mesh.vbo : this.vertex_buffer;
     const ibuffer = mesh ? mesh.ebo : this.index_buffer;
-
     const pa_loc = this.gl.getAttribLocation(this.program, "vertex_position");
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbuffer);
     this.gl.enableVertexAttribArray(pa_loc);
@@ -338,16 +430,16 @@ class webglController {
       this.gl.FLOAT,
       false,
       3 * Float32Array.BYTES_PER_ELEMENT,
-      0
+      0,
     );
 
-    this.set_matrices(model);
+    this.set_matrices(mesh);
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibuffer);
     this.set_color(color);
     this.gl.drawElements(mode, elements, this.gl.UNSIGNED_SHORT, 0);
   }
 
-  draw_points(points, color = [0.8, 0.8, 0.8, 1.0]) {
+  draw_points(points, color = [0.8, 0.8, 0.8, 1.0], size) {
     this.set_vertices(points.flat());
     this.render(this.gl.POINTS, points.length, color);
   }
@@ -359,14 +451,14 @@ class webglController {
   }
 
   load_obj() {
-    const verts = new Float32Array(parser.vertices.flat());
-    const idx   = new Uint16Array(parser.indices.flat().map(i => i - 1));
+    const verts = new Float32Array(this.model.vertices.flat());
+    const idx = new Uint16Array(this.model.indices.flat().map((i) => i - 1));
 
     this.mesh = {
       vbo: this.gl.createBuffer(),
       ebo: this.gl.createBuffer(),
       count: idx.length,
-      pos: math.matrix([0, 0, 0])
+      pos: math.matrix([0, 0, 0]),
     };
 
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.mesh.vbo);
@@ -376,18 +468,18 @@ class webglController {
     this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, idx, this.gl.STATIC_DRAW);
   }
 
-  draw_obj(color = [1.0, 0.4118, 0.7059, 0.3], scale=1.0) {
-    let model = identitym4();
-    glMatrix.mat4.translate(model, model, this.mesh.pos.toArray());
-    glMatrix.mat4.scale(model, model, [scale, scale, scale]);
-    this.render(this.gl.TRIANGLES, this.mesh.count, color, model, this.mesh);
+  draw_obj(color = [1.0, 0.4118, 0.7059, 0.25]) {
+    this.render(this.gl.TRIANGLES, this.mesh.count, color, this.mesh);
   }
 
-  draw_rect(top, i, j, w, h, color = [1.0, 0.8, 1.0, 0.2]) {
+  draw_rect(top, i, j, w, h, color = [0, 0, 0, 0.3]) {
     const nj = math.multiply(j, -1);
-    const a = math.add(top, math.multiply(i, w))
-    const b = math.add(top, math.multiply(nj, h))
-    const c = math.add(top, math.add(math.multiply(i, w), math.multiply(nj, h)))
+    const a = math.add(top, math.multiply(i, w));
+    const b = math.add(top, math.multiply(nj, h));
+    const c = math.add(
+      top,
+      math.add(math.multiply(i, w), math.multiply(nj, h)),
+    );
     const vertices = [top, a.toArray(), b.toArray(), c.toArray()];
     const indices = [0, 1, 2, 1, 2, 3];
     this.set_vertices(vertices.flat());
@@ -396,14 +488,13 @@ class webglController {
   }
 
   async init_loop() {
-    this.model = await load_mesh(URL);
-    parser.parse(this.model);
-    this.gl.clearColor(0, 0, 0, 1); 
-    this.gl.enable(this.gl.BLEND); 
-    this.gl.blendEquation(this.gl.FUNC_ADD); 
-    this.gl.blendFunc(this.gl.SRC_ALPHA, 
-      this.gl.ONE_MINUS_SRC_ALPHA);
-    this.gl.enable(this.gl.DEPTH_TEST);
+    this.model = await load_mesh(modelURL);
+    this.model = parser.parse(this.model).at(0);
+    this.model.indices = this.model.indices.map((i) => i + 1);
+    this.gl.clearColor(0, 0, 0, 1);
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendEquation(this.gl.FUNC_ADD);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     this.gl.depthFunc(this.gl.LEQUAL);
 
     // forbidden
@@ -412,8 +503,6 @@ class webglController {
 
     this.load_obj();
 
-    this.camera.translate([0, 0, -5]);
-    
   }
 
   draw_axes() {
@@ -422,32 +511,31 @@ class webglController {
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 2.0],
       ],
-      [1.0, 0.0, 0.0, 1.0]
+      [1.0, 0.0, 0.0, 1.0],
     );
     this.draw_lines(
       [
         [0.0, 0.0, 0.0],
         [0.0, 2.0, 0.0],
       ],
-      [0.0, 1.0, 0.0, 1.0]
+      [0.0, 1.0, 0.0, 1.0],
     );
     this.draw_lines(
       [
         [0.0, 0.0, 0.0],
         [2.0, 0.0, 0.0],
       ],
-      [0.0, 0.0, 1.0, 1.0]
+      [0.0, 0.0, 1.0, 1.0],
     );
   }
 
   mainloop() {
     // Do stuff
     this.draw_axes();
-    //this.prop_sim.draw_this(this);
-    //this.prop_sim.draw_projection_lines(this);
-    //this.prop_sim.pp_camera.translate([0, 0.1, 0.0]);
-    //this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-
+    this.prop_sim.draw_this(this);
+    this.prop_sim.get_prop_perspective();
+    this.prop_sim.draw_projection_lines(this);
+    this.prop_sim.draw_projection_points(this);
     this.draw_obj();
     window.requestAnimationFrame(() => this.mainloop());
   }
@@ -455,9 +543,16 @@ class webglController {
 
 async function main() {
   const canvas = document.getElementById("3Dprojective");
-  const _3Dcontroller = new webglController(canvas);
-  await _3Dcontroller.init_loop();
-  _3Dcontroller.mainloop();
+  const ctl = new webglController(canvas);
+  await ctl.init_loop();
+  while (ctl.model === undefined) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  ctl.camera.translate([2.5, 2.5, 2.1]);
+  ctl.translate_mesh([0, 0, 12]);
+  ctl.camera.look_direction = math.matrix([0, 0, 4])
+  ctl.scale_mesh(1);
+  ctl.mainloop();
 }
 
 main();

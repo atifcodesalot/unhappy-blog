@@ -7,6 +7,8 @@
 <head>
     <link rel="stylesheet" href="static/css/style2.css">
     {% include 'tech_head.html' %}
+    <script src="static/js/3D/shaders.js" type="module"></script>
+    <script src="static/js/3D/webgl.js" type="module"></script>
 </head>
 
 <header>
@@ -16,6 +18,9 @@
 
 <body>
     {% include '_sidebar.html' %}
+
+    <label for="3Dprojective">Behold: 3D projection</label>
+    <canvas id="3Dprojective" width="600px" height="500px"></canvas>
 
     <section class="textChunk" id="model-view-transformations">
         <h2> Model and View Transformations </h2>
