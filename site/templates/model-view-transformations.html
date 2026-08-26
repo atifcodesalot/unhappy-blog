@@ -23,7 +23,8 @@
     <canvas id="3Dprojective" width="600px" height="500px"></canvas>
 
     <section class="textChunk" id="model-view-transformations">
-        <h2> Model and View Transformations </h2>
+        <h2> Model and View Transformations </h2> <br>
+        <h2> The View Matrix </h2>
         <p>
             When you look up, things on the ground go down. e.g, when you look at a car, then look up, the car goes down in your sight and now you are looking at the sky. Look at the top left corner of your screen then look back, these words appeared south-east.
             It is because within your view space, they really are south-east. Shortly and more simply, when you rotate your head, your view space changes. And your view space is just where everything exactly in front of your head is on the \(z\) axis.
@@ -35,7 +36,7 @@
 
 
             <br>
-            <br> Let's formalize the rotation part, assuming a left-handed coordinate system, when you are looking at the direction \( \hat{d} \), you have a coordinate system with basis: $$ \mathcal{B} = \big\{ \hat{b}_1, \ \hat{b}_2, \ \hat{b}_3 \big\}
+            <br> Let's formalize the rotation part, assuming a right-handed coordinate system, when you are looking at the direction \( \hat{d} \), you have a coordinate system with basis: $$ \mathcal{B} = \big\{ \hat{b}_1, \ \hat{b}_2, \ \hat{b}_3 \big\}
             $$ where: $$ \hat{b}_3 = \hat{d} $$ $$ \hat{b}_2 = \hat{d}_{\perp} $$ $$ \hat{b}_1 = \hat{d}_{\perp} \times \hat{b}_3 $$ relative to the global world space! Transformation to your view is: $$ P_{view} \mapsto (\hat{b}_1 \cdot P_{world})\hat{b}_1
             + (\hat{b}_2 \cdot P_{world})b_2 + (\hat{b}_3 \cdot P_{world})\hat{b}_3 $$ or: $$ P_{view} = \begin{bmatrix} \hat{b}_1^T \\ \hat{b}_2^T \\ \hat{b}_3^T\end{bmatrix} \cdot P_{world} $$ $$ = \mathbf{M_{rotation}} \cdot P_{world} $$ Where \( P_{world}\)
             is the position vector of the point.
@@ -66,7 +67,7 @@
             one! So it is going to be a 4x4 matrix.
             <br> It is about time once again to augment our vector by a homogenous part, that is we create a homogenous coordinate: $$ \vec{P} = \begin{bmatrix} x \\ y \\ z \\ 1 \end{bmatrix} $$ This way we can express non-linear and non-affine transformations
             via matrix multiplications! And it is known that matrix multiplication is <a href="https://en.wikipedia.org/wiki/Associative_property">associative</a>. Meaning all symbols being matrices: $$ \mathbf{(AB)C = A(BC)} $$ And: $$ \mathbf{A}(\mathbf{B}(\mathbf{C}\mathbf{D}))
-            = (\mathbf{A}\mathbf{B}\mathbf{C})\mathbf{D} $$ Hopefully the picture is clear: As we have seen before, the matrix that projects a point onto a plane that is vertical and sits at \(x = d\) is: $$ \mathbf{M_{proj}} = \begin{bmatrix} 1 & 0 &
+            = (\mathbf{A}\mathbf{B}\mathbf{C})\mathbf{D} $$ Hopefully the picture is clear: As we have seen before, the matrix that projects a point onto a plane that is vertical and sits at \(z = d\) is: $$ \mathbf{M_{proj}} = \begin{bmatrix} 1 & 0 &
             0 & 0 \\ 0 & 1 & 0 & 0 \\ 0& 0 & 1 & 0 \\ 0 & 0 & \frac{1}{d} & 0\end{bmatrix} $$ Now let's get back to finding the translation matrix. It is easier to find it intuitively rather than mathematically, so we will use our intuition for now.
             <br> A translated point reads as: $$ \vec{P}'_t = \begin{bmatrix} x + \delta x \\ y + \delta y \\ z + \delta z \\ 1 \end{bmatrix} $$ Notice the homogenous part is still \(1\). Considering we will be multiplying the last column of our translation
             matrix with the homogenous part which is \(1\), anything in the last column will be added to the respect each row in our position vector! $$ \vec{P}'_t = \vec{P} \cdot \begin{bmatrix} 1 & 0 & 0 & \delta x \\ 0 & 1 & 0 & \delta y \\ 0 & 0 &
@@ -82,6 +83,221 @@
             \vec{p}) \\ \hat b_{3x} & \hat b_{3y} & \hat b_{3z} & -(\hat b_3 \cdot \vec{p}) \\ 0 & 0 & 0 & 1 \end{bmatrix} $$ I have used the associative property of matrices to evaluate \(\mathbf{M}_{rotation} \cdot \mathbf{M}_{translation}\) to obtain
             \(\mathbf{M}_{view}\). The order is crucial. We assume in our view matrix that the homogenous part is \(1\), so it must be multiplied -with the point- before the projection matrix. The only thing missing is clipping (and viewport transformations)
             now, which we will delve into shortly after. But firstly, it is time for one of the most important mathematical aspect of computer graphics.
+        </p>
+
+        <h2> The Model Matrix </h2>
+        <p>
+            What on earth could be the "model matrix"? Simple: it is a mathematical tool we use to transform the vertices 
+            of a model, based on its properties. For example: let's say I have a cow in my game. The cow is alive, hence;
+            it can displace. Just like the camera has a position, the objects that are being rendered have positions.
+            What do I do? I multiply the initial model vertices with the model matrix to move it where I want it to be.
+            Not only that, the cow could have rotated, or maybe I find the model of the cow too small and want to make it bigger by a factor.
+            These are all geometrical transformations that can be represented by a matrix: translation, rotation and scaling. <br>
+
+            The space where the model is in the center of the coordinate system is called the "model space".
+            The cow model we have at hand perhaps had unit coordinates, maybe it was contained in a unit cube, 
+            but when transformed with the model matrix; it could be anywhere in global space, be of any size and could be in
+            any orientation.
+
+            Enough talk, let's try to construct a model matrix. <br>
+
+            Let's say I have a cow model (for the third time) at hand, its geometry is defined by the set of vertices \(V\),
+            local to the origin or in "model space". This means that for every point in \(V\) the point's distance to the origin,
+            in model space, dictates the model's size. Why? It is easier to imagine with a sphere: a sphere is basically a "model"
+            where its center is our origin in model space! If you make the radius bigger, the sphere gets bigger or vice versa.
+            The cow is a very irregular sphere, but the idea is the same. <br>
+
+            So the idea is to scale the point by a factor: 
+
+            $$
+            P \cdot k, \ P \in V
+            $$
+
+            We want to do this with a matrix, it is not hard to see that this can be done via:
+
+            $$
+            P_{scaled} = P \cdot (I_4 \cdot k)
+            $$
+            Where \(I_4\) is the 4x4 identity matrix with a twist:
+
+            $$
+             P_{scaled} = \begin{bmatrix} k & 0 & 0 & 0 \\ 0 & k & 0 & 0 \\ 0 & 0 & k & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} 
+             \cdot P
+            $$
+            From matrix multiplication.
+            $$
+            \ = \ \ \ \ \  \begin{bmatrix} P_x\cdot k \\ P_y\cdot k \\ P_z\cdot k \\ 1 \end{bmatrix}
+            $$
+
+            Just what we are aiming for.
+
+            Now, we know the translation matrix from our previous matrix calculations in this chapter, the only thing missing is the 
+            rotation matrices for orientation. Generally the model matrix is:
+
+            $$
+            \mathbf{M_model} = M_{scale} \cdot M_{model-translation} \cdot M_{model-rotation}
+            $$
+            Which equals to: 
+            $$
+            \mathbf{M_model} = \cdot \begin{bmatrix} k & 0 & 0 & 0 \\ 0 & k & 0 & 0 \\ 0 & 0 & k & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} 
+            \cdot \begin{bmatrix} 1 & 0 & 0 & x_{model} \\ 0 & 1 & 0 & y_{model} \\ 0 & 0 & 1 & z_{model} \\ 0 & 0 & 0 & 1\end{bmatrix} 
+            \cdot M_{model-rotation} 
+            $$
+
+            The order matters if you want to rotate the model around itself, you need to rotate before you translate. <br>
+
+            Now, how do we find the model rotation matrix?
+            Is it possible to rotate with matrix multiplication?
+            Indeed it is! <br>
+
+            I will assume we are trying to rotate the points around the local origin. Now, this is done via 
+            matrices known as <a href="https://en.wikipedia.org/wiki/Rotation_matrix">rotation matrices</a>.
+            Will I drive them here, which would result in a long and rigorous process of reinventing the wheel? Of course I will!
+
+            Don't worry though, if you don't care, you can skip this part. <br>
+
+            Hope you are familiar with trigonometry. A point on our cow's model could be written as:
+
+            $$
+            P = \begin{bmatrix} d_z\cos(t) \\ d_z\sin(t) \\ P_z \end{bmatrix}
+            $$
+
+            where \(d_z\) is the distance of the point to the \(z\) axis. Intuitively, the point could be thought of an
+            arbitrary triangle around the \(z\) axis. If I wanted to rotate it around the \(z\) axis w.r.t to the local origin, 
+            I would rotate it on that triangle: 
+
+            $$
+            P' = \begin{bmatrix} d_z\cos(t + \delta t) \\ d_z\sin(t + \delta t) \\ P_z \end{bmatrix}
+            $$
+
+            From trigonometric addition identities:
+
+            $$
+            \sin(a+b)=\sin a\cos b+\cos a\sin b
+            $$
+            $$
+            \cos(a+b)=\cos a\cos b-\sin a\sin b
+            $$
+
+            ...Why? Ok, I need to draw a line here, 
+            I am not archimedes and this blog is not abour trigonometry (well, not per se)! I will leave a link 
+            <a href="https://en.wikipedia.org/wiki/Proofs_of_trigonometric_identities">here</a> 
+            if you are curios about where it comes. <br>
+
+            Our rotated point becomes, and let's not forget out homogenous part this time:
+
+            $$
+            P' = \begin{bmatrix} d_z(\cos t\cos \delta t-\sin t\sin \delta t) \\ 
+            d_z(\sin t\cos \delta t+\cos t\sin \delta t) \\
+            P_z \\
+            1 \end{bmatrix} 
+            $$
+
+            From matrix multiplication, we can separate this into another matrix:
+
+            $$
+            P' = 
+            \begin{bmatrix}
+            d_z\cos t \\ 
+            d_z\sin t \\
+            P_z 
+            \end{bmatrix}
+            \cdot
+            \begin{bmatrix}
+            \cos \delta t & -\sin \delta t & 0 & 0 \\ 
+            \sin \delta t & \cos \delta t & 0 & 0\\
+            0 & 0 & 1 & 0 \\
+            0 & 0 & 0 & 1 
+            \end{bmatrix}
+            $$
+
+            $$
+            = P
+            \cdot
+            \begin{bmatrix}
+            \cos \delta t & -\sin \delta t & 0 & 0\\ 
+            \sin \delta t & \cos \delta t & 0 & 0 \\
+            0 & 0 & 1 & 0 \\
+            0 & 0 & 0 & 1
+            \end{bmatrix}
+            $$
+
+            Similarly for the \(x\) axis:
+
+            $$
+            P = \begin{bmatrix} P_x \\ d_x\cos(t) \\ d_x\sin(t) \end{bmatrix}
+            $$
+
+            Therefore the  rotation matrix is:
+
+            $$
+            R_x(\theta)=
+            \begin{bmatrix}
+            1 & 0 & 0 & 0 \\
+            0 & \cos\theta & -\sin\theta & 0\\
+            0 & \sin\theta & \cos\theta & 0\\
+            0 & 0 & 0 & 1
+            \end{bmatrix}
+            $$
+
+            and for the \(y\) axis:
+
+            $$
+            R_y(\theta)=
+            \begin{bmatrix}
+            \cos\theta & 0 & \sin\theta & 0\\
+            0 & 1 & 0 & 0\\
+            -\sin\theta & 0 & \cos\theta & 0 \\
+            0 & 0 & 0 & 1\\
+            \end{bmatrix}
+            $$
+
+            Ok, we have obtained the rotation matrices.
+
+            So the whole model matrix is:
+
+            $$
+            \mathbf{M_model} = \cdot \begin{bmatrix} k & 0 & 0 & 0 \\ 0 & k & 0 & 0 \\ 0 & 0 & k & 0 \\ 0 & 0 & 0 & 1 \end{bmatrix} 
+            \cdot \begin{bmatrix} 1 & 0 & 0 & x_{model} \\ 0 & 1 & 0 & y_{model} \\ 0 & 0 & 1 & z_{model} \\ 0 & 0 & 0 & 1\end{bmatrix} 
+            \cdot R
+            $$
+
+            where 
+
+            $$
+            R = \prod R_{x,y,z}
+            $$
+
+            which just means arbitrary axis rotations, depending on the cow's orientational state.
+
+            If I wanted to rotate it around the \(x\) axis then around the \(y\) axis, then:
+
+            $$
+            R = R_y \cdot R_x
+            $$
+
+            for example.
+        </p>
+
+        <h2>The model-view matrix</h2>
+
+        <p>
+            So, the whole model-view matrix is: 
+
+            $$
+            \mathbf{M_model-view} = \mathbf{M_view} \cdot \mathbf{M_model}
+            $$
+
+            We can multiply it with the projection matrix to get the whole package:
+
+            $$
+            \mathbf{M_{PVM}} = \mathbf{M_proj} \cdot \mathbf{M_view} \cdot \mathbf{M_model}
+            $$
+
+            And there we go! We now know how to project a transformed model onto our transformed viewport!
+
+            <br>
+
         </p>
 
     </section>
