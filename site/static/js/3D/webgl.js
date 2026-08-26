@@ -278,8 +278,6 @@ class InputHandler {
     const deltaY = e.movementY;
     this.controller.rotate_mesh(deltaX * 0.01, [0, 1, 0])
     this.controller.rotate_mesh(deltaY * 0.01, [1, 0, 1])
-    // this.prop_sim.rotate(deltaX * 0.3, [0, 1, 0]);
-    // this.prop_sim.rotate(deltaY * 0.3, [1, 0, 0]);
   }
 }
 
@@ -302,6 +300,10 @@ class webglController {
     );
     this.mesh_rot = [0, 0, 0];
     this.model_matrix = identitym4();
+
+    this.event = 0
+
+    this.axes = [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
   }
 
   static line_indices(point_count) {
@@ -531,6 +533,21 @@ class webglController {
 
   mainloop() {
     // Do stuff
+    this.event += 1
+    if (this.event % 128 === 0) {
+      this.event_start = true
+      this.rot_angle = math.random() * math.PI / 2
+      this.angle = 0
+      this.rot_axis = this.axes[Math.floor(Math.random() * 3)]
+    }
+    if (this.event_start) {
+      if (this.angle >= this.rot_angle) {
+        this.event_start = false
+      } else {
+        this.rotate_mesh(0.01, this.rot_axis)
+        this.angle += 0.001
+      }
+    }
     this.draw_axes();
     this.prop_sim.draw_this(this);
     this.prop_sim.get_prop_perspective();
