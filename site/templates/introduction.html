@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" href="static/css/style2.css" />
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src=https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.0.1/math.min.js></script>
+  </head>
+
+
+  <header>
+    Burzum's take on Computer Graphics
+    <img src="../static/img/dolphin.png" alt="metaballs" />
+  </header>
+
+  <body>
+    {% include '_sidebar.html' %}
+    <script>
+      const sidebar = new SideBarInitializer(document);
+      sidebar.init();
+    </script>
+
+    <section class="imgContainer">
+        <img src="../static/img/eye.jpg" alt="eye">
+        <label>
+            The human eye, the most advanced camera ever made.
+            <br> It is not perfect, but it is very good at what it does.
+    </section>
+
+    <section class="textChunk" id="introduction">
+      <h2>Introduction</h2>
+      <p>
+        The human vision works roughly as follows: light coming from an object
+        is projected on the curvature of the back of the eye, and our brain
+        flips it and accounts for the curvature, making it flat (mostly). This
+        in fact, is equivalent to perspective projection. There are other type
+        of projections (orthogonal for example), which be later discussed
+        (WIP?).
+      </p>
+
+      <h2>The pinhole camera model</h2>
+      <img src="../static/img/pinhole_camera.jpg" alt="pinhole-camera" />
+
+      <p>
+        The pinhole camera model is very simple camera model that consists of a
+        very narrow hole and a hypothetical box to let light in coming from
+        certain directions, and project it onto a wall that is behind the hole.
+        For our vision, the pinhole camera model is close, though not the same.
+        Our eyes have lenses that focus the upcoming light that alter the
+        aperture, the lens can shrink, get bigger etc. However it is still
+        sufficiently accurate to be able to demonstrate this model for our
+        purposes. Notice in the image that the image is flipped. Now think of an
+        imaginary viewport in front of the pinhole. The image also projects onto
+        that phantom viewport, but the image is, in fact, not flipped:
+      </p>
+
+      <img src="../static/img/phantom.png" alt="phantom-vp" />
+
+      <p>
+        So imagine your eye sitting at the pinhole, we can say you have a
+        viewport; a plane, at \(z=F\), then perspective project everything
+        there, with respect to the pinhole (your eye)! This is the model we will
+        use mathematically, whether it is rasterization or raytracing.
+      </p>
+
+      <p>
+        Perspective projection is a type of transformation. A transformation is
+        esentially a change done to a point, with a specific geometrical
+        operation in mind. For example consider the point: $$P = (2, 3)$$ We can
+        translate, or move this point to the left: \(P' = (0, 3)\) And
+        therefore, we transformed it, we have obtained a point from another by
+        doing something to it, in this case translation.
+        <br />
+        Perspective projection is esentially the same thing. We take a point and
+        transform it so that it is projected on something, in our case the image
+        plane of our eye. This I think is the most introductory phrase to the
+        conventional real-time rendering methods. Points projecting onto a
+        plane. But for the sake of simplicity, let's start with
+        \(\mathbb{R}^2\), 2 dimensions, as the 2D analogue of a plane is a line.
+        <br>
+      </p>
+    </section>
+  </body>
+
+  {% include 'footer.html' %}
+</html>

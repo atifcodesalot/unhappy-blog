@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="static/css/style2.css">
+</head>
+
+<header>
+    Burzum's take on Computer Graphics
+    <img src="../static/img/dolphin.png" alt="metaballs">
+</header>
+
+<body>
+    {% include '_sidebar.html' %}
+    <script>
+        const sidebar = new SideBarInitializer(document);
+            sidebar.init();
+    </script>
+
+
+
+    <section class="textChunk" id="intro">
+        <p> Hello, beautiful people of the internet! I am Burzum, a goofy nerd on the internet. In my blog I wanted to delve into how video games, or computers in general, simulate our perception, using technologies such as: perspective projections, texture
+            mapping, shading models (like gourard), raytracing and whatnot. Initially though, it will mostly about rasterization.
+        </p>
+
+        <p>
+            <h2>What to expect?</h2>
+            <p>
+                For now, some incomplete-ish but original explanations of the theoretical and mathematical foundations of computer graphics. I try to relate to how the mathematical model is built and our vision to not stay so abstract. The blog is still incomplete, but
+                it is being updated actively. So don't forget to check it out frequently!
+            </p>
+        </p>
+
+        <p>
+            Starts out a little more mathematically friendly but then gets a little complicated as I try to get to mathematical root of the technology. Don't be intimitated though! If you don't have a huge mathematical background, it is fine. I will try to be as
+            direct as possible, and something I want to say: don't get scared by notation. What I explain actually vanishes to nothing more than division and multiplication. There are some possible confusing constructions like matrices here and there
+            (actually everywhere lol) but behind all that fancy stuff, the idea is SIMPLE. It just builds around that very simple idea to eventually make it complex.
+            <br> if you are interested (I can't think of a reason tbh but...) in visiting my old and embarassing attempt: <a href="/graphics_legacy">link</a>
+            <br> It is fun to look at I guess so I left it there.
+            <br>
+        </p>
+    </section>
+</body>
+
+{% include 'footer.html' %}
+
+</html>

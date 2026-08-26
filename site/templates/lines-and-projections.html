@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="static/css/style2.css">
+    {% include 'tech_head.html' %}
+</head>
+
+<header>
+    Burzum's take on Computer Graphics
+    <img src="../static/img/dolphin.png" alt="dolphimesh">
+</header>
+
+<body>
+    {% include '_sidebar.html' %}
+
+    <section class="textChunk" id="lines-and-projections">
+        <h2>Lines and Their Projections</h2>
+        <p> We all know what lines are, right? &#128515
+            <br> Lines are of paramount importance in rasterization. You will understand more about why in the perspective-correct-interpolation chapter.
+            <br> The most friendly and perhaps common way of modeling a line is through the equation: $$ mx + c = y $$ Most of the time though, in computer graphics, we will want to track some attributes of points on a line, so it is very useful to think
+            a line as the expression: $$ \vec{P_0} + \alpha\hat{u} $$ Where \(\hat{u}\) is a unit vector in the direction of the line.
+            <br> So for example the line \(y=x\) is can be written as \(\ell(\alpha) = \vec{0} + \alpha \langle \frac{1}{\sqrt{2}}, \frac{1}{\sqrt{2}} \rangle\).
+            <br> Let's say go back to our 2D observer sitting at the origin, with a viewport at \(x = 1\), we want to (perspective) project the line \(y = f(x)\), on his viewport. This is merely projecting a line onto another with a reference point, which
+            can be called a collineation in projective geometry. It is a bijection from the set of all the points that make up the line \(f(x)\) onto the points on the viewport of the observer.
+            <br>
+            <br> Wait, so... what? When we project a line onto another, the projection is another line? Indeed it is, and let's prove it. In our special case, the transformation is: $$ [x: f(x): w] \mapsto [x: f(x): w\cdot x] \equiv [1: \frac{f(x)}{x}: w]
+            $$ We know that \(f(x)\) is of form: \(mx + c\) so: $$ \frac{f(x)}{x} = m + \frac{c}{x}$$ and the final form \([1: m + \frac{c}{x}: w]\) is obviously another line. $$ \bar{x} = \frac{1}{x} $$ $$ \bar{f}(\bar{x}) = m + \bar{x}c$$ But an important
+            fact we must notice that \(\bar{f}(x)\) (not \(\bar{f}(\bar{x})\)) is a hyperbolic function. It esentially means that a change in \(x\) does not equal to linear change in \(\bar{f}(x)\) like it does in \(f(x)\): $$ f(x + \delta x) - f(x) =
+            m\delta x \ne \delta \bar{f}(x)$$ This is an important fact, that is actually the core reason of perspective-correct texturing. Let us go back to our vector-like definition of a line: $$ \ell(\alpha) = \vec{P} + \alpha\hat{u} $$ Let's try
+            to project this abstract definition of a line into our 1D viewport \(x = 1\), as this line is completely vertical; needless to say the projected line will also have the direction \(\hat{u}' = [0 \ \ 1]^T\) $$ \ell_{proj}(\bar{\alpha}) = \frac{\vec{P}}{x_0}
+            + \bar{\alpha}(\alpha) \begin{bmatrix} 0 \\ 1 \end{bmatrix}$$ $$ = \begin{bmatrix} 1 \\ \frac{y_0}{x_0} + \bar{\alpha}(\alpha) \end{bmatrix}$$ Evidently: $$ = \begin{bmatrix} 1 \\ \frac{y_0 + \alpha u_y}{x_0 + \alpha u_x} \end{bmatrix} $$
+            Where \( \hat{u} = \hat{i}\cdot u_x + \hat{j}\cdot u_y\), $$ \implies \bar{\alpha} = \frac{y_0 + \alpha u_y}{x_0 + \alpha u_x} - \\ \frac{y_0}{x_0} $$ $$ \implies \ell_{proj}(\alpha) = \frac{\vec{P}}{x_0} + \biggr(\frac{y_0 + \alpha u_y}{x_0
+            + \alpha u_x} - \\ \frac{y_0}{x_0}\biggr) \begin{bmatrix} 0 \\ 1 \end{bmatrix} \\ $$ $$ = \ell_{proj}(\bar{\alpha}) = \vec{P}' + \bar{\alpha} \begin{bmatrix} 0 \\ 1 \end{bmatrix} $$ This means that \(\ell_{proj}\) is linear with respect to
+            \(\bar{\alpha}\).
+            <br> So what did we achieve after all this mathematical rigor? We found a parameter function we can use to interpolate a projected line on \(x = 1\)!
+            <br> Why do we care? Texture maps are 2 dimensional, meaning that pixels vary linearly, the texture can be imagined lying on a plane. That is why I said earlier that it is useful to track an attribute that lies on a line. As mentioned, <a href="https://en.wikipedia.org/wiki/Texel_(graphics)">texels</a>            lie on a line, considering a plane is just the analogue of a line in 3 dimensions, it can actually be parametrized very similarly: $$ q(\alpha, \beta, \gamma) = \ell_1(\alpha) + \gamma(\ell_2(\alpha) - \ell_1(\beta)), \ \ \gamma \in [0, 1]
+            $$ So we actually can find the projected plane (on \(x = 1\) for now) and its pixels: $$ q_{proj}(\bar{\alpha}, \bar{\beta}, \bar{\gamma}) = \ell_{1_{proj}}(\bar{\alpha}) + \bar{\gamma}(\ell_{2_{proj}}(\bar{\beta}) - \ell_{2_{proj}}(\bar{\alpha}))
+            $$ using the parameters above. Polygon primitives are usually triangles or quads, and a more convenient way of representing a surface: barycentric coordinates are often used instead.
+            <br> We will get on to it later. Another very important conclusion is that since the projection of lines are again lines, the process of projecting a line can be done by projecting two points then drawing a line between the projected points without
+            any further calculations. This is actually one of the axioms from the fundamental theorem of projective geometry!
+
+            <br>
+        </p>
+    </section>
+
+</body>
+
+{% include 'footer.html' %}
+
+</html>

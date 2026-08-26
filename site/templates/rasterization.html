@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="static/css/style2.css"> {% include 'tech_head.html' %}
+</head>
+
+<header>
+    Burzum's take on Computer Graphics
+    <img src="../static/img/dolphin.png" alt="dolphimesh">
+</header>
+
+<body>
+    {% include '_sidebar.html' %}
+
+    <section class="textChunk" id="Rasterization">
+        <div class="note">
+            <label>
+                Please acquaint yourself with
+                <a href="https://en.wikipedia.org/wiki/Raster_graphics">raster</a> and <a href="https://en.wikipedia.org/wiki/Vector_graphics">vector</a> graphics if you haven't already!
+            </label>
+        </div>
+        <h2> What the heck does rasterization mean? </h2>
+        <p>
+            Rasterization is the process of rendering vector graphics on a raster display, such as an IPS monitor. Almost all monitors, as of 2026, use raster displays to convey visual data. This means that the display, screen is a 2 dimensional array of squares
+            called "pixels". If you are perceptive enough, you might began to realize this is kind of problematic. We defined geometry using coordinates that are continuous, but our screen has finite coordinates. So let's say I want to draw a line from
+            the origin to any point \(P\) that is defined in the continuous space of \(\mathbb{R}^2\). How do I do this? The answer to this question is (line) rasterization.
+            <br> The transformation from the real euclidean space to pixel, or raster space is as follows; Any real coordinate \(P\) where \(P \in \mathbb{R}^2\) correspond to a pixel, which have integer coordinates. So we can say that the transformation
+            is: $$ R: \mathbb{R}^2 \mapsto \mathbb{Z}^2 $$ We can define this mapping as: $$ R = round(x), \ x \in \mathbb{R^2} $$ The tragic collapse of continuity in a raster display! If you are familiar with with set theory; this isn't very suprising:
+            the set of \(\mathbb{Z}^2\) is countably infinite: $$ |\mathbb{Z}^2| = \aleph_0 $$ whereas \(\mathbb{R}^2\) is uncountably infinite, meaning: even in a finite domain of \(\mathbb{R}^2\) there are infinite points, but in a finite domain of
+            \(\mathbb{Z}^2\) there are finite points!
+            <br> This results in data loss, as known as aliasing, due to the inability of processing floats.
+
+        </p>
+
+        <h2> A naive algorithm </h2>
+
+        <p>
+            Amidst this heart-braking data loss, there are algorithms that surf this wave of incompatibility, I want to present a naive one. Let me try to explain it very simply:
+            <br> Suppose we have 2 coordinates in our raster space: $$ p_1, \ p_2 \in \mathbb{Z}^2 $$ The vector from \(p_1\) to \(p_2\) is: $$ \hat{u} = \frac{p_2 - p_1}{||(p_2 - p_1)||} $$ We let \(s := p_1\), then: $$ s \leftarrow round(s + \hat{u}) $$
+            Until \(s\) is \(p_2\) with a reasonable amount of margin of error.
+            <br> I will not discuss well established algorithms such as Bresenham's algorithm, as this is a trivial chapter, and we will get into rasterization more comprehensively in the shading part.
+            <br>
+            <br>
+        </p>
+
+    </section>
+
+</body>
+
+{% include 'footer.html' %}
+
+</html>

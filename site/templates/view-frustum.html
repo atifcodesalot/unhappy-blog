@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel="stylesheet" href="static/css/style2.css">
+    {% include 'tech_head.html' %}
+</head>
+
+<header>
+    Burzum's take on Computer Graphics
+    <img src="../static/img/dolphin.png" alt="dolphimesh">
+</header>
+
+<body>
+    {% include '_sidebar.html' %}
+
+    <section class="textChunk" id="view-frustum">
+        <h2> Clipping </h2>
+
+        <p>
+            Consider yourself looking at your screen right now. Do you see everything and anything around you, even if they are not obstructed by an object? Do you see your back? Do you see anything that is behind you? Assuming you are a human being with normal eyes,
+            you don't. The reason you don't is because certain light coming from certain directions, angles don't reach your eye. The light that bounces from an object behind you (and is coming towards your eye), or that is completely above you, hits
+            your head and since your head is not transparent, it is absorbed reflected et cetera. Ok, enough of making common sense sounding like a physics lecture. The simple idea is that you have a field of view in two axes: \(x\) and \(y\). Of course
+            as long as we assume the mentioned fictional eye space of at the center of your head, where you always look at the \(z+\) direction. This creates an infinitely long pyramid where the top your vanishing point, or perspective point or "the eye".
+            <br>
+
+        </p>
+
+        <h2> "The far plane" </h2>
+
+        <p>
+            Ok, we have fields of view in two dimensions, but what about \(z\)? Well, we can see any light as long as it is coming towards our eye within the constraints of our \(x\) \(y\) FOV's. Any light, including the faint starlight from the young stars that
+            are dead now, from billions of years ago, we can see them as long as it reaches or eye! But... We are working with computers here, and they are terrible with the notion of infinity. I can't let my renderer draw everything indefinitely, that
+            is in my FOV, if I am making an open world game for example. It would generate a enormous amount of computational constraints and performance issues. If you have played minecraft before, you'd get it right away! Minecraft worlds are infinite:
+            imagine looking from a viewpoint in minecraft so high up there is little that obstruct your view. What would you see? Minecraft worlds are flat, so no; there wouldn't be a horizon. Say goodbye to your PC, as it shrieks in pain while trying
+            to render chunks as far away as the andromeda galaxy (minecraft worlds are bigger than you might think).
+            <br> What we need is a threshold that we use to not render something if they are too far away, so we introduce another constraint: a "far plane" as it is conventionally called. This along with our viewport or the "near plane" makes up a frustum
+            (of a pyramid). Anything that is outside this frustum is ignored or "clipped". But how can we impose this mathematically? Let's see.
+        </p>
+
+        <h2>The full projection matrix </h2>
+
+        <p>
+            The final projection matrix I have provided at our model-view transformations is incomplete. In this section I explain why it is incomplete, and derive the full version.
+            <br> The near plane we are talking about is our viewport, and we just introduced another plane to limit our far vision. Both are finite planes so they have widths and heights. Let's call the near plane width \(W\) and height \(H\). and let's call
+            its ambient plane equation \(z = n\) from now on instead of \(z = d\) for convenience.
+            <br> We assume the plane's middle point is \((0, 0, n)\), that is it is sitting at the middle of our vision. And its corners are \((\frac{W}{2}, \frac{H}{2}, n)\), \((-\frac{W}{2}, \frac{H}{2}, n)\), \((\frac{W}{2}, -\frac{H}{2}, n)\) and \((-\frac{W}{2},
+            \frac{H}{2}, n)\) i.e it is symmetric. I will derive the general version of the matrix without these assumptions as well so if you want the OpenGL perspective matrix version, don't worry!
+            <br> Now remember that we multiply the projection matrix after the view transformation: $$ \mathbf{M}_{proj} \cdot \mathbf{M}_{view} \cdot P_{world} = \mathbf{M}_{proj} \cdot (\mathbf{M}_{view} \cdot P_{world}) = \mathbf{M}_{proj} \cdot P_{view}
+            $$ using the associative property of matrices. This means that the point we are multiplying with the projection matrix is in our view space.
+            <br> The core idea is this, please try to give your full attention here; let \((x_e, y_e, z_e)\) be a point in eye space, then if the projected \(x_e\), \(y_e\), is NOT on the viewport boundaries (\([-\frac{W}{2}, \frac{W}{2}]\) and \([-\frac{H}{2},
+            \frac{H}{2}]\) respectively) OR \(z_e\) is not in the boundary \([n, f]\) then the point is not in our view frustum and is clipped. Else? It is in our view!
+            <br> I truly believe the idea is simple. For a point to be in our view frustum, it needs to be in our viewport when we project it, AND its depth before projecting (z coordinate in the view space) must be between the near and the far plane. That
+            is the whole point of the view frustum! Alright, now; if we want to integrate this into our projection matrix, it is convenient to follow the NDC (normalized device coordinates) framework which is also used by OpenGL. You might be screaming
+            "what the heck is that?!" right now, don't worry... it was my reaction the first time as well. The idea behind is that we normalize view space coordinates to something called clip coordinates, and then we divide the clip coordinates by the
+            homogenous part to obtain NDC. Why do we do such thing and what exactly are NDC and clip coordinates? NDC is just another coordinate space that "warps" our view space. It warps it so that in this coordinate space the points inside the unit
+            cube -whose center is at origin- are transformed from points in our view space -that were inside our view frustum. In other words: if the points within the NDC space is outside the mentioned cube (outside of ranges \([-1, 1]\) in every dimension),
+            the original points that were put into NDC were not in our view frustum and they are clipped, discarded. Clip coordinates are just the normalized device coordinates before the perspective divide, which is simply dividing the (clip) point by
+            its homogenous coordinate to obtain the projected coordinates. To start mathematically, let's see how we can put view space coordinates into clip coordinates. So for any non-homogenous coordinate \(u_c\) which is in the clip space (i.e \(x_c\),
+            \(y_c\) or \(z_c\)): $$ u_{ndc} \cdot w_{c} = u_{c} $$ Start with \(x_e\). We want to normalize it to \([-1, 1]\) with respect to \([-\frac{W}{2}, \frac{W}{2}]\), How do we do that? Simple proportionality: $$ \frac{x_c}{\ell_0} = \frac{x_e}{\ell_1}
+            \\ \implies x_c = \frac{x_e \cdot \ell_0}{\ell_1} $$ The interval \([-\frac{W}{2}, \frac{W}{2}]\) expectedly has a length of \(W\). and the \([-1, 1]\) has \(2\), therefore: $$ x_c = x_e \frac{2}{W} $$ And the coordinates after the perspective
+            divide (which are in NDC): $$ x_{ndc} = x_e \frac{2n}{z_e\cdot W} $$ Similarly: $$ y_c = y_e \frac{2}{H} $$ and: $$ y_{ndc} = y_e \frac{2n}{z_e\cdot H } $$ What about \(z_{ndc}\)? It is a little bit trickier. We want to map \(z_e\) to \(z_{ndc}
+            \in [-1, 1]\), but \(z_{ndc}(z_e)\) is non-linear with respect to \(z_e\)!
+            <br> Let's stop and breath for a moment and try to complete our projection matrix for \(x_c\), \(y_c\) and \(w_c\) $$ \mathbf{M}_{proj} \cdot P_{view} = \begin{bmatrix} x_c \\ z_c \\ z_c \\ w_c \end{bmatrix} $$ $$ $$ $$ \implies \mathbf{M}_{proj}
+            \cdot \begin{bmatrix} x_e \\ z_e \\ z_e \\ w_e \end{bmatrix} = \begin{bmatrix} x_c \\ z_c \\ z_c \\ w_c \end{bmatrix} $$ We already derived \(x_c\) and \(y_c\): $$ \begin{bmatrix} \frac{2}{W} & 0 & 0 & 0 \\ 0 & \frac{2}{H} & 0 & 0 \\ a_{1}
+            & a_{2} & a_{3} & a_{4} \\ 0 & 0 & \frac{1}{n} & 0\end{bmatrix} \cdot \begin{bmatrix} x_e \\ z_e \\ z_e \\ w_e \end{bmatrix} = \begin{bmatrix} x_c \\ z_c \\ z_c \\ w_c \end{bmatrix} $$ Evidently, from matrix multiplication: $$ z_c = a_1 x_e
+            + a_2 y_e + a_3 z_e + a_4 w_e $$ Since \(z_c\) is linearly independent from (does not depend on) \(x_e\) and \(y_e\): $$ a_1 = a_2 = 0 $$ and in view space our homogenous part is still \(1\): $$ w_e = 1 $$ What remains is: $$ z_c = a_3 z_e
+            + a_4 $$ Remember that we are trying to map \(z_e\) to \([-1, 1]\) with respect to \([n, f]\). Unfortunately because \(z_{ndc}\) is non-linear with respect to \(z_e\) (because we divide it with \(z_e\)), one can't simply claim proportionality
+            Like we did previously with \(x_e\) and \(y_e\): $$ \displaystyle \nexists_{k \in \mathbb{R}} \ \ z_{ndc} = k \cdot z_e $$ where \(k\) is free of \(z_e\)... So the mapping \(\mathcal{N} : z_e \mapsto z_{ndc}\) is non-linear... Sigh, this non-linearity
+            is something huh? It is a price we pay for perspectivity... Ok, no giving up! We know that \(\mathcal{N}(-1) = n\), the minimum depth value for clipping and the maximum: \(\mathcal{N}(1) = f\). which are the z coordinates of the near and far
+            planes as expected. We also know that: $$ \mathcal{N}(z_e) = \frac{z_c}{w_c} = \frac{(a_3 z_e + a_4) n}{z_e} $$ If we find \(a_3\) and \(a_4\) we can find \(\mathcal{N}\). It is a matter of two equations of two unknowns: $$ \mathcal{N}(n)
+            = \frac{(a_3 n + a_4)n}{n} $$ $$ $$ $$ \implies -n = a_3 n^2 + a_4n \tag{1} $$ And: $$ f\cdot \mathcal{N}(f) = (a_3 f + a_4) n $$ $$ $$ $$ \implies f = a_3 fn + a_4n \tag{2} $$ Substracting \((1)\) from \((2)\) we get: $$ f + n = a_3\cdot
+            n(f - n) $$ $$ \implies \frac{f + n}{n(f-n)} = a_3 $$ Awesome! Now let's be slick and plug \(a_3\) into \((1)\) $$ -1 = \biggr(\frac{f + n}{n(f-n)}\biggr) n + a_4 $$ $$ \implies \frac{f + n}{n-f} - 1 = a_4 $$ $$ \implies \frac{f + n - n +
+            f}{n-f} = a_4 $$ $$ \implies \frac{2f}{n-f} = a_4 $$ $$ \therefore \ \mathcal{N}(z_e) = \frac{\frac{2f}{f-n} z_e + \frac{f + n}{n-f}}{z_e} $$ And there we found the third row of the final projection matrix! Let's write it proudly: $$ \mathbf{M}_{proj}
+            = \begin{bmatrix} \frac{2}{W} & 0 & 0 & 0 \\ 0 & \frac{2}{H} & 0 & 0 \\ 0 & 0 & \frac{f + n}{n(f-n)} & \frac{2f}{n-f} \\ 0 & 0 & \frac{1}{n} & 0\end{bmatrix} $$
+        </p>
+
+        <h2>The classic: putting it all together...</h2>
+
+        <p>
+            We have arrived at our destination. A matrix that takes a point in world space and transforms it to NDC: $$ \mathbf{M}_{PV} = \begin{bmatrix} \frac{2}{W} & 0 & 0 & 0 \\ 0 & \frac{2}{H} & 0 & 0 \\ 0 & 0 & \frac{f + n}{n(f-n)} & \frac{2f}{n-f} \\ 0 & 0
+            & \frac{1}{n} & 0\end{bmatrix} \cdot \begin{bmatrix} \hat b_{1x} & \hat b_{1y} & \hat b_{1z} & -(\hat b_1 \cdot \vec{p}) \\ \hat b_{2x} & \hat b_{2y} & \hat b_{2z} & -(\hat b_2 \cdot \vec{p}) \\ \hat b_{3x} & \hat b_{3y} & \hat b_{3z} & -(\hat
+            b_3 \cdot \vec{p}) \\ 0 & 0 & 0 & 1 \end{bmatrix} $$
+        </p>
+
+        <h2>How to clip points? </h2>
+
+        <p>
+
+            As we have seen the transformation to clip coordinates is characterized by the matrix multiplication: $$ P_c = \mathbf{M}_{PV} \cdot P $$ And as we have discussed we clip when: $$ -1 > x_{ndc} \mid x_{ndc} > 1 $$ $$ -1 > y_{ndc} \mid y_{ndc} > 1 $$ $$
+            -1 > x_{ndc} \mid x_{ndc} > 1 $$ $$ -w_c > z_{c} \mid z_{c} > w_c $$ We will discuss how to construct another polygon from a clipped one in a later implementation chapter.
+            <br>
+            <br>
+        </p>
+
+    </section>
+
+</body>
+
+{% include 'footer.html' %}
+
+</html>

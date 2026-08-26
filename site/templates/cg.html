@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<html>
+
+<head>
+  <title>Computer Graphics</title>
+  <script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+<script type="text/javascript"
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+  <link rel="stylesheet" href="../static/css/cg.css">
+</head>
+
+<body>
+
+  <h1 class="headline">Computer graphics</h1>
+  <p1 class="infobox"> hello! I am Burzum and I wrote what you are about to read. <br>
+    The purpose of this writing is to have fun and guide myself towards the journey of writing a solid software renderer
+    by myself. </br></p1>
+
+  <p2 class="kinkybox"> The stuff I wrote mostly consists of ramblings of my own and may be the outcries of my passion
+    towards computer graphics. It is not to be taken formally!!!! Or reference of any kind...</p2>
+  <p3 class="kinkybox"> The writing doesn't have any structure as far as I am concerned and I'll be jumping from concept
+    to concept even if completely unrelated...</p3>
+
+
+
+  <h2 class="marker"> Rasterization </h2>
+  <p1 class="infobox"> What the hell is rasterization?? It is basically (probably not very wisely put) the consequence
+    of having raster displays and trying to render things defined in vector graphics format.
+    <br> Back in the CRT days vector monitors were once common (?) But we now use raster displays almost all the time,
+    that's why we need to rasterize. Anyways rasterization is the process of converting things defined in vector
+    graphics into their raster counterpart.
+  </p1>
+
+
+  <h2 class="marker"> Polygon Meshes</h2>
+  <p1 class="infobox">
+    The most interesting and fun thing about computer graphics, at least for me, is polygon meshes. Don't you love that
+    almost anything you see in a 3D video game is a polyhedral that is made of triangles or, and quadrilaterals?
+    I sure do! Even without texturing I really like the way they look!!!
+    <br> Take a look at this dolphin for example (some of the triangles are shaded): </br>
+    <div class="illustrator">
+      <img src="../static/img/dolphin.png"> </img>
+      <p>Notice that this is a considerably low polygon model, <br> meaning it consists of relatively lower triangles;
+        making it look less detailed <br></p>
+    </div>
+    <br>
+    </br>
+    Polygon meshes are the most common way of modeling 3D objects, and even though there are alternatives that are
+    sometimes preferred to polygon meshes, like <a href="https://en.wikipedia.org/wiki/Metaballs">metaballs</a>. <br> But most of the time we are going to work with polygon meshes
+    which have primitives as triangles.
+    </br>
+    Notice how this concept reduces literally any solid object to a set of triangles or quadrilaterals. The catch is
+    that how do we rasterize these models??? They are defined by triangles, quadrilaterals
+    and ultimately lines, after all.
+
+  </p1>
+
+  <h2 class="marker"> Human Perception and the Pinhole Camera Model</h2>
+  <p1 class="infobox">
+    Us hoomans have eyes that have retinas as "projection planes", The light projects on somewhere back in the eye. The
+    pinhole camera model emulates this, but without a
+    lens. <br> The image is projected on the retina upside down. The distance between where the projected image occurs,
+    or in other words the the positions of where lights meet the photoreceptors and the eye is labeled the focal length.
+    At a certain point in front of the eye the same image (with the same dimensions [width and height]) actually forms,
+    is projected on a let's say imaginary surface; but not upside down! </br>
+
+    <div class="illustrator">
+      <img src="https://www.mathworks.com/help/vision/ug/camera-calibration-focal-point.svg"> </img>
+      <p> <a href="https://en.wikipedia.org/wiki/Pinhole_camera_model">The pinhole camera model</a></p>
+    </div>
+
+    <br> Thus to emulate human visual perception we are going to work with a hypersurface embedded at a certain location
+    in $R^3$, or simply a plane :)))</br>
+
+  </p1>
+
+  <h2 class="marker"> Perspective Projection </h2>
+  <p1 class="infobox">
+    Our aim now should be to project points onto the plane we discussed about. The plane itself is named the viewport,
+    and that is the plane we are going to take reference of when we
+    are going to try to rasterize stuff. Our goal is simple (?) it is to project every point that the object contains to
+    the viewport. But this is practically impossible for real world objects; because of the simple fact that they
+    contain an infinite amount of points, that is why we use polygon meshes,
+    to be able to construct real objects with finite vertices, using triangles and quadrilaterals. The more polygons we
+    use, the closer the model is to its real counterpart.
+    It is like digitalizing objects and that is why I said I really like it! But let's try to project a single point
+    onto a plane before any further ado.
+  </p1>
+
+  <div class="eq">
+    <p> Let $P$ be any point in $R^3$ represented in homogenous coordinates:</p>
+    $$
+    P = \begin{bmatrix}
+    x_1 \\
+    y_1 \\
+    z_1 \\
+    w_1
+    \end{bmatrix}
+    $$
+
+    <p> And our viewport $V$: </p>
+    $$
+    \displaystyle z = a
+    $$
+
+    <p> To project this point $P$, defined in homogenous coordinates, onto the surface $V$ (which happen to be our
+      viewport), <br> let's define a matrix to manipulate it: </br>
+    </p>
+    $$
+    M_p = \begin{bmatrix}
+    1 & 0 & 0 & 0 \\
+    0 & 1 & 0 & 0 \\
+    0 & 0 & 1 & 0 \\
+    0 & 0 & 0 & \frac{z_1}{w_1a} \\
+    \end{bmatrix}
+    $$
+
+  </div>
+
+  <p1 class="infobox"> Ta-da! When we multiply this matrix (Looks terribly like the identity matrix I know...) with any
+    homogenous coordinate,
+    the result will always be on the surface $V$, in the cartesian coordinate system that is. Wait...
+    This is the same as multiplying the cartesian form of the point with $\displaystyle \frac{a}{z_1}. . .$ Well, we are
+    not done yet with our matrix! So cope on!!!
+  </p1>
+
+
+  <h2 class="marker"> Transformations </h2>
+  <p1 class="infobox"> What happens when we rotate our heads, or walk away from an object? Or do we really walk away
+    from it? Maybe it walks away from us? (abandonment issues).
+    Do they rotate around our heads within a fixed distance or are we the ones who look around?
+    The intentions of this virtually non-sensical series of questions is to make you understand that without a reference
+    point, change in poition is ambiguous in terms of
+    action relation. It can be very well both and, but why should we care? We should care because we are obviously going
+    to render, project our points "relative" to the
+    position of our camera or observer.
+  </p1>
+
+  <p1 class="infobox">
+    Now, stop for a second and think of any time when you shook your head, did your head rotate around itself with
+    respect to the yaw axis, or did all of the things
+    inside your eye space rotated around the point that your head occupies in the opposite angular direction? Seeing a
+    pattern here, aren't we?
+  </p1>
+  <div class="illustrator">
+    <img src="../static/img/head_.png"> </img>
+    <p> the rotation axes of a head </p>
+  </div>
+  <p1 class="infobox">
+    If we were emulate these phenomenon by transforming our camera, that is rotating or translating our viewport, this
+    would be costly compared to the method
+    that is typically used. Tilt our viewport a little and the projecting of a point onto our viewport is no longer as
+    simple as multipliying it by a scalar. I think
+    you can see where this is going &#x1F916. . . Yes! We are going to transform the points themselves instead! Well, we
+    are going to transform each point according to the camera position, rotation and then project
+    onto the viewport. Let's roll!
+  </p1>
+
+  <div class="eq">
+    <p> Let $\vec{C}$ be the position vector of the camera: </p>
+
+    $$ \vec{C} = \langle x_c, y_c, z_c \rangle $$
+
+    <p> And the rotation of the camera in the $x$ and the $y$ axis respectively (ignoring any possible roll for now):
+    </p>
+
+    $$\phi_x, \ \phi_y$$
+
+    <p> Our matrix then becomes: </p>
+    $$
+    \begin{bmatrix}
+    1 & 0 & 0 & -\frac{x_c}{w_1} \\
+    0 & 1 & 0 & -\frac{y_c}{w_1} \\
+    0 & 0 & 1 & -\frac{z_c}{w_1} \\
+    0 & 0 & 0 & \frac{z_1}{w_1a} \\
+    \end{bmatrix} R_x(\phi_x) \cdot R_y(\phi_y)
+    $$
+
+    <p> Or more of an extended version: </p>
+    $$
+    P(x_c, y_c, z_c, \phi_x, \phi_y, w_1) = \
+    \begin{bmatrix}
+    1 & 0 & 0 & -\frac{x_c}{w_1} \\
+    0 & 1 & 0 & -\frac{y_c}{w_1} \\
+    0 & 0 & 1 & -\frac{z_c}{w_1} \\
+    0 & 0 & 0 & \frac{z_1}{w_1a} \\
+    \end{bmatrix}
+    \begin{bmatrix}
+    1 & 0 & 0 & 0 \\
+    0 & \cos\phi_x & -\sin\phi_x & 0 \\
+    0 & \sin\phi_x & \cos\phi_x & 0 \\
+    0 & 0 & 0 & 1 \\
+    \end{bmatrix}
+    \begin{bmatrix}
+    \cos\phi_y & 0 & \sin\phi_y & 0 \\
+    0 & 1 & 0 & 0 \\
+    -\sin\phi_y & 0 & \cos\phi_y & 0 \\
+    0 & 0 & 0 & 1 \\
+    \end{bmatrix}
+    $$
+  </div>
+
+  <p1 class="kinkybox">
+    Now, I don't hate myself so I wont multiply these matrices here. You can do it yourself by remembering that matrix
+    multiplication isn't commutative. You just need to stay consistent with the order of multiplication.
+  </p1>
+
+
+
+
+  <h2 class="marker"> Frustrum Culling </h2>
+  <p1 class="infobox"> Well, we humans do have eyesight... but can we see everything? Or do we have a view frustrum that
+    limits our vision? Neither!
+    In real life unlike in the frustrum eye space "model" there is no far plane, meaning thoretically there is no limit
+    for how far we would see. But still, our field of view isn't
+    360 degrees; but in our model there is no limitation of that. Any point will project on our viewport. So what do we
+    do? Relatively simple. We define a frustrum and any point that is outside of that frustrum won't project on
+    our viewport and thus won't be rendered. This is called "frustrum culling" or "clipping". This frustrum by
+    definition includes two planes that are parallel to each other. One is called the near plane and is our viewport.
+    The other is the bigger one and is called the far plane. This plane is specifically important because it limits how
+    far we can see.
+  </p1>
+
+
+
+</body>
+
+</html>
