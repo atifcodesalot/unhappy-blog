@@ -144,7 +144,7 @@
             \cdot M_{model-rotation} 
             $$
 
-            The order matters if you want to rotate the model around itself, you need to rotate before you translate. <br>
+            The order matters if you want to rotate the model around itself: you would need to rotate before you translate. <br>
 
             Now, how do we find the model rotation matrix?
             Is it possible to rotate with matrix multiplication?
@@ -198,28 +198,29 @@
             $$
             P' = 
             \begin{bmatrix}
-            d_z\cos t \\ 
-            d_z\sin t \\
-            P_z 
-            \end{bmatrix}
-            \cdot
-            \begin{bmatrix}
             \cos \delta t & -\sin \delta t & 0 & 0 \\ 
             \sin \delta t & \cos \delta t & 0 & 0\\
             0 & 0 & 1 & 0 \\
             0 & 0 & 0 & 1 
             \end{bmatrix}
+            \cdot
+            \begin{bmatrix}
+            d_z\cos t \\ 
+            d_z\sin t \\
+            P_z 
+            \end{bmatrix}
             $$
 
             $$
-            = P
-            \cdot
+            =
             \begin{bmatrix}
             \cos \delta t & -\sin \delta t & 0 & 0\\ 
             \sin \delta t & \cos \delta t & 0 & 0 \\
             0 & 0 & 1 & 0 \\
             0 & 0 & 0 & 1
             \end{bmatrix}
+            \cdot
+            P
             $$
 
             Similarly for the \(x\) axis:
